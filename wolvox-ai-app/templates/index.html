@@ -305,6 +305,39 @@
             box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
         }
 
+        .mic-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .mic-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: var(--accent-primary);
+        }
+
+        .mic-btn.recording {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgb(239, 68, 68);
+            color: rgb(239, 68, 68);
+            animation: micPulse 1.5s infinite;
+        }
+
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
         /* --- DASHBOARD SECTION --- */
         .dashboard-section {
             padding: 2rem;
@@ -485,7 +518,15 @@
             </div>
 
             <div class="chat-input-area">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Doğal dilde bir talimat yazın..."
+                <button class="mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="Sesle Anlat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v1a7 7 0 0 1-14 0v-1"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </button>
+                <input type="text" class="chat-input" id="chatInput" placeholder="Doğal dilde veya sesle bir talimat yazın..."
                     onkeydown="if(event.key === 'Enter') sendMessage()">
                 <button class="send-btn" onclick="sendMessage()" id="sendBtn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -539,6 +580,55 @@
 
     <script>
         let currentPendingData = null;
+        let recognition = null;
+        let isRecording = false;
+
+        // Web Speech API kontrolü
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'tr-TR';
+
+            recognition.onstart = function() {
+                isRecording = true;
+                const micBtn = document.getElementById('micBtn');
+                micBtn.classList.add('recording');
+                document.getElementById('chatInput').placeholder = 'Dinleniyor... Konuşun...';
+            };
+
+            recognition.onend = function() {
+                isRecording = false;
+                const micBtn = document.getElementById('micBtn');
+                micBtn.classList.remove('recording');
+                document.getElementById('chatInput').placeholder = 'Doğal dilde veya sesle bir talimat yazın...';
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                const chatInput = document.getElementById('chatInput');
+                chatInput.value = chatInput.value ? chatInput.value + ' ' + transcript : transcript;
+                chatInput.focus();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error', event.error);
+                alert('Ses tanıma sırasında hata oluştu: ' + event.error);
+            };
+        } else {
+            console.warn('Speech recognition not supported in this browser.');
+            document.getElementById('micBtn').style.display = 'none';
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
 
         function appendMessage(sender, text, isHtml = false) {
             const chatMessages = document.getElementById('chatMessages');
@@ -588,10 +678,12 @@
                         let details = '';
                         if (act.action === 'grup_ekle') {
                             details = `<span style="color: var(--accent-primary)">[Grup Ekle]</span> 📂 <strong>${act.grup_adi}</strong>`;
+                        } else if (act.action === 'grup_sil') {
+                            details = `<span style="color: #ef4444">[Grup Sil]</span> 🗑️ 📂 <strong>${act.grup_adi}</strong>`;
                         } else if (act.action === 'stok_ekle') {
                             details = `<span style="color: var(--accent-success)">[Stok Ekle]</span> 🛒 <strong>${act.stok_adi}</strong> (Grup: ${act.grubu}, Birim: ${act.birimi}, Fiyat: ${act.satis_fiyati_1} TL, KDV: %${act.kdv_orani})`;
                         } else if (act.action === 'stok_sil') {
-                            details = `<span style="color: red">[Stok Sil]</span> 🗑️ <strong>${act.stok_kodu || act.stok_adi}</strong>`;
+                            details = `<span style="color: red">[Stok Sil]</span> 🗑️ 🛒 <strong>${act.stok_kodu || act.stok_adi}</strong>`;
                         }
                         actionsListHtml += `<div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;">${idx+1}. ${details}</div>`;
                     });

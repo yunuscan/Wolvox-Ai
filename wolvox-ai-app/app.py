@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Wolvox AI Stok Yönetimi - Flask Backend
-Groq API + Firebird veritabanı entegrasyonu (Grup Ekleme, Stok Silme ve Çoklu Eylem Desteği)
+Groq API + Firebird veritabanı entegrasyonu (Akıllı Tahmin, Çoklu Eylem, Grup Silme & Stok Adıyla Silme)
 """
 from flask import Flask, render_template, request, jsonify
 from groq import Groq
@@ -66,7 +66,7 @@ def get_db_definitions():
 
 
 def build_system_prompt():
-    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur (Çoklu Eylem Destekli)"""
+    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur (Grup Silme ve Stok Adıyla Silme Destekli)"""
     groups, units = get_db_definitions()
     
     groups_str = ", ".join([f"'{g}'" for g in groups]) if groups else "'Genel'"
@@ -91,25 +91,29 @@ DESTEKLENEN EYLEMLER VE FORMATLARI:
    - Kullanıcı yeni bir grup tanımlamak istediğinde tetiklenir (örn: "Şarküteri grubu oluştur", "Yeni grup ekle: Manav").
    - Format: {{"action":"grup_ekle","grup_adi":"..."}}
 
-3. Stok Silme (stok_sil):
-   - Kullanıcı belirli bir stok kodunu veya stok adını silmek istediğinde tetiklenir (örn: "ST00001 kodlu ürünü sil", "Nohut stoğunu sil").
-   - Stok kodunu (stok_kodu) veya stok adını (stok_adi) doldur.
+3. Grup Silme (grup_sil):
+   - Kullanıcı mevcut bir grubu silmek istediğinde tetiklenir (örn: "Şarküteri grubunu sil", "Manav grubunu iptal et").
+   - Format: {{"action":"grup_sil","grup_adi":"..."}}
+
+4. Stok Silme (stok_sil):
+   - Kullanıcı belirli bir stok kodunu veya stok ADINI silmek istediğinde tetiklenir (örn: "ST00001 kodlu ürünü sil", "Muz stoğunu sil", "Nohut ürününü sil").
+   - Kullanıcı kodu belirtmediyse sadece stok_adi alanını doldur.
    - Format: {{"action":"stok_sil","stok_kodu":"...","stok_adi":"..."}}
 
-4. Stokları Listeleme (listele):
+5. Stokları Listeleme (listele):
    - Kullanıcı stokları listelemek istediğinde tetiklenir.
    - Format: {{"action":"listele"}}
 
 ÇOKLU TALİMAT YÖNETİMİ:
-Kullanıcı tek bir mesajda birden fazla istek yapabilir (örn: "Şarküteri diye bir grup oluştur, sonra bu gruba Salam ekle alış 40 satış 70, ve son olarak ST00002 kodlu stoğu sil").
+Kullanıcı tek bir mesajda birden fazla istek yapabilir (örn: "Şarküteri grubunu sil, Manav grubu oluştur ve içine Armut ekle").
 Bu durumda tüm eylemleri sırasıyla "actions" dizisine ekle.
 
 DÖNECEK JSON FORMATI (SADECE JSON DÖN, BAŞKA METİN EKLEME):
 {{
   "actions": [
-    {{ "action": "grup_ekle", "grup_adi": "Şarküteri" }},
-    {{ "action": "stok_ekle", "stok_adi": "Salam", "grubu": "Şarküteri", "birimi": "KG", "kdv_orani": 10, "satis_fiyati_1": 70, "alis_fiyati_1": 40, "aciklama": "" }},
-    {{ "action": "stok_sil", "stok_kodu": "ST00002", "stok_adi": "" }}
+    {{ "action": "grup_sil", "grup_adi": "Şarküteri" }},
+    {{ "action": "grup_ekle", "grup_adi": "Manav" }},
+    {{ "action": "stok_ekle", "stok_adi": "Armut", "grubu": "Manav", "birimi": "KG", "kdv_orani": 10, "satis_fiyati_1": 0, "alis_fiyati_1": 0, "aciklama": "" }}
   ]
 }}
 
@@ -146,6 +150,32 @@ def add_group_db(grup_adi):
         """, (grup_blkodu, grup_adi))
         con.commit()
         return {'success': True, 'msg': f"✅ '{grup_adi}' grubu başarıyla oluşturuldu.", 'blkodu': grup_blkodu}
+    except Exception as e:
+        con.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        cur.close()
+        con.close()
+
+
+def delete_group_db(grup_adi):
+    """Veritabanından grubu siler"""
+    grup_adi = grup_adi.strip()
+    if not grup_adi:
+        return {'success': False, 'error': 'Grup adı belirtilmedi.'}
+
+    con = get_db()
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT BLKODU FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grup_adi,))
+        row = cur.fetchone()
+        if not row:
+            return {'success': False, 'error': f"Silinmek istenen grup bulunamadı ({grup_adi})."}
+
+        blkodu = row[0]
+        cur.execute("DELETE FROM GRUP WHERE BLKODU = ?", (blkodu,))
+        con.commit()
+        return {'success': True, 'msg': f"🗑️ '{grup_adi}' grubu başarıyla silindi."}
     except Exception as e:
         con.rollback()
         return {'success': False, 'error': str(e)}
@@ -288,7 +318,7 @@ def add_stock_db(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati
 
 
 def delete_stock_db(stok_kodu=None, stok_adi=None):
-    """Veritabanından stok kartını ve fiyatlarını siler"""
+    """Veritabanından stok kartını ve fiyatlarını siler (Koda veya Ada göre)"""
     if not stok_kodu and not stok_adi:
         return {'success': False, 'error': 'Silinecek stok belirlenemedi.'}
 
@@ -296,12 +326,18 @@ def delete_stock_db(stok_kodu=None, stok_adi=None):
     cur = con.cursor()
     try:
         # Önce stoğu bul
-        if stok_kodu:
+        if stok_kodu and stok_kodu.strip():
             cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOKKODU) = UPPER(?)", (stok_kodu.strip(),))
         else:
             cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOK_ADI) = UPPER(?)", (stok_adi.strip(),))
         
         row = cur.fetchone()
+        
+        # Eğer tam ad eşleşmediyse benzerlik (LIKE) ile ara
+        if not row and stok_adi:
+            cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOK_ADI) LIKE UPPER(?)", (f"%{stok_adi.strip()}%",))
+            row = cur.fetchone()
+            
         if not row:
             return {'success': False, 'error': f"Silinmek istenen stok bulunamadı ({stok_kodu or stok_adi})."}
 
@@ -477,6 +513,15 @@ def confirm_actions():
                 results.append(f"{idx}. {res['msg']}")
             else:
                 results.append(f"{idx}. ❌ Grup Ekleme Hatası ({grup_adi}): {res['error']}")
+
+        elif action_type == 'grup_sil':
+            grup_adi = act.get('grup_adi')
+            res = delete_group_db(grup_adi)
+            if res['success']:
+                success_count += 1
+                results.append(f"{idx}. {res['msg']}")
+            else:
+                results.append(f"{idx}. ❌ Grup Silme Hatası ({grup_adi}): {res['error']}")
 
         elif action_type == 'stok_ekle':
             res = add_stock_db(
