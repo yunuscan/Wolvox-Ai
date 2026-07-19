@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Wolvox AI Stok Yönetimi - Flask Backend
-Groq API + Firebird veritabanı entegrasyonu (Akıllı Tahmin & Grup-Birim Kontrolü)
+Groq API + Firebird veritabanı entegrasyonu (Grup Ekleme, Stok Silme ve Çoklu Eylem Desteği)
 """
 from flask import Flask, render_template, request, jsonify
 from groq import Groq
@@ -66,42 +66,95 @@ def get_db_definitions():
 
 
 def build_system_prompt():
-    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur"""
+    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur (Çoklu Eylem Destekli)"""
     groups, units = get_db_definitions()
     
     groups_str = ", ".join([f"'{g}'" for g in groups]) if groups else "'Genel'"
     units_str = ", ".join([f"'{u}'" for u in units]) if units else "'ADET', 'KG'"
 
-    prompt = f"""Sen bir Wolvox ERP stok yönetim asistanısın. Kullanıcı sana doğal dilde stok ekleme talimatı verecek.
-Görevin, kullanıcının mesajından stok bilgilerini çıkarıp JSON formatında döndürmek.
+    prompt = f"""Sen bir Wolvox ERP stok yönetim asistanısın. Kullanıcı sana doğal dilde bir veya birden fazla talimat verecek.
+Görevin, kullanıcının mesajındaki TÜM talimatları analiz edip bir eylem listesi (actions) olarak JSON formatında döndürmektir.
 
 VERİTABANINDA MEVCUT TANIMLAR:
 - Tanımlı Stok Grupları: [{groups_str}]
 - Tanımlı Birimler: [{units_str}]
 
-AKILLI TAHMİN KURALLARI:
-1. Kullanıcı stok eklemek istediği ürünün adını verdiğinde (örn. "Kırmızı Mercimek"), KDV oranını, grubunu ve birimini kendisi açıkça belirtmemişse ÜRÜN ADINDAN AKILLICA TAHMİN ET:
-   - GRUP TAHMİNİ: Ürünün adına en uygun grubu yukarıdaki "Tanımlı Stok Grupları" listesinden seç. Eğer listedekilerin hiçbiri uymuyorsa, yeni bir grup ismi uydur (örn. Mercimek için 'Bakliyat', Domates için 'Gıda', Deterjan için 'Temizlik').
-   - KDV TAHMİNİ: Türkiye KDV standartlarına göre en uygun oranı tahmin et (%1, %10 veya %20).
-     * Gıda ürünleri (örn. bakliyat, et, süt, sebze): %10 (temel gıda) veya %1 (toptan/bazı özel gıdalar). Genelde perakende gıdada %10 tercih et.
-     * Temizlik, kozmetik, kişisel bakım (örn. sabun, şampuan, deterjan): %20.
-     * Elektronik, giyim, mobilya, hizmet: %20.
-   - BİRİM TAHMİNİ: Ürünün satılabileceği en mantıklı birimi yukarıdaki "Tanımlı Birimler" listesinden seç (örn. sıvı ürünler için 'Litre' veya 'L', dökme ürünler için 'KG', adetli ürünler için 'ADET').
+DESTEKLENEN EYLEMLER VE FORMATLARI:
 
-2. Eğer kullanıcı birim veya grup adını Türkçe olarak farklı yazdıysa (örn. "kilo", "kilogram" -> 'KG'; "tane", "adet" -> 'ADET'; "bakliyatlar" -> 'Bakliyat'), yukarıdaki resmi tanımlarla akıllıca eşleştir.
+1. Stok Ekleme (stok_ekle):
+   - Ürün adından KDV, grup ve birimi akıllıca tahmin et (kullanıcı belirtmemişse).
+   - KDV tahminleri: Gıda ürünlerinde %10, temizlik/hijyen/elektronik ürünlerinde %20.
+   - Birim tahminleri: KG, ADET, Litre vb. veritabanında tanımlı olanlardan seç.
+   - Format: {{"action":"stok_ekle","stok_adi":"...","grubu":"...","birimi":"...","kdv_orani":0,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":"..."}}
 
-3. SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir metin ekleme.
+2. Grup Ekleme (grup_ekle):
+   - Kullanıcı yeni bir grup tanımlamak istediğinde tetiklenir (örn: "Şarküteri grubu oluştur", "Yeni grup ekle: Manav").
+   - Format: {{"action":"grup_ekle","grup_adi":"..."}}
 
-JSON FORMATI:
-{{"action":"stok_ekle","stok_adi":"...","grubu":"...","birimi":"...","kdv_orani":0,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":"..."}}
+3. Stok Silme (stok_sil):
+   - Kullanıcı belirli bir stok kodunu veya stok adını silmek istediğinde tetiklenir (örn: "ST00001 kodlu ürünü sil", "Nohut stoğunu sil").
+   - Stok kodunu (stok_kodu) veya stok adını (stok_adi) doldur.
+   - Format: {{"action":"stok_sil","stok_kodu":"...","stok_adi":"..."}}
 
-Eğer kullanıcı stok ekleme değil, stok listeleme veya başka bir şey istiyorsa:
-{{"action":"listele"}} veya {{"action":"soru","cevap":"..."}}
+4. Stokları Listeleme (listele):
+   - Kullanıcı stokları listelemek istediğinde tetiklenir.
+   - Format: {{"action":"listele"}}
+
+ÇOKLU TALİMAT YÖNETİMİ:
+Kullanıcı tek bir mesajda birden fazla istek yapabilir (örn: "Şarküteri diye bir grup oluştur, sonra bu gruba Salam ekle alış 40 satış 70, ve son olarak ST00002 kodlu stoğu sil").
+Bu durumda tüm eylemleri sırasıyla "actions" dizisine ekle.
+
+DÖNECEK JSON FORMATI (SADECE JSON DÖN, BAŞKA METİN EKLEME):
+{{
+  "actions": [
+    {{ "action": "grup_ekle", "grup_adi": "Şarküteri" }},
+    {{ "action": "stok_ekle", "stok_adi": "Salam", "grubu": "Şarküteri", "birimi": "KG", "kdv_orani": 10, "satis_fiyati_1": 70, "alis_fiyati_1": 40, "aciklama": "" }},
+    {{ "action": "stok_sil", "stok_kodu": "ST00002", "stok_adi": "" }}
+  ]
+}}
+
+Eğer eylem yoksa ve sadece soru soruluyorsa:
+{{
+  "actions": [
+    {{ "action": "soru", "cevap": "Sorunun cevabı buraya gelecek." }}
+  ]
+}}
 """
     return prompt
 
 
-def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1, aciklama=''):
+def add_group_db(grup_adi):
+    """Veritabanına yeni grup ekle"""
+    grup_adi = grup_adi.strip()
+    if not grup_adi:
+        return {'success': False, 'error': 'Grup adı boş olamaz.'}
+
+    con = get_db()
+    cur = con.cursor()
+    try:
+        # Case-insensitive varlık kontrolü
+        cur.execute("SELECT BLKODU FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grup_adi,))
+        row = cur.fetchone()
+        if row:
+            return {'success': True, 'msg': f"'{grup_adi}' grubu zaten mevcut.", 'blkodu': row[0]}
+
+        cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
+        grup_blkodu = cur.fetchone()[0]
+        cur.execute("""
+            INSERT INTO GRUP (BLKODU, GRUP_ADI, MODUL, WEBDE_GORUNSUN)
+            VALUES (?, ?, 'STOK', 1)
+        """, (grup_blkodu, grup_adi))
+        con.commit()
+        return {'success': True, 'msg': f"✅ '{grup_adi}' grubu başarıyla oluşturuldu.", 'blkodu': grup_blkodu}
+    except Exception as e:
+        con.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        cur.close()
+        con.close()
+
+
+def add_stock_db(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1, aciklama=''):
     """Veritabanına yeni stok kartı ekle"""
     con = get_db()
     cur = con.cursor()
@@ -112,7 +165,7 @@ def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1,
         cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grubu.strip(),))
         row = cur.fetchone()
         if row:
-            grup_adi = row[1].strip()  # Eşleşen orijinal grup adını kullan
+            grup_adi = row[1].strip()
         else:
             # Grup yoksa oluştur
             cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
@@ -124,14 +177,12 @@ def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1,
             grup_adi = grubu.strip()
 
         # 2. BİRİM KONTROL / EŞLEŞTİRME
-        # Veritabanındaki tanımlı birimleri alıp benzerlik kontrolü yapalım
         cur.execute("SELECT BIRIMI FROM STOK_BIRIMLERI")
         db_units = [r[0].strip() for r in cur.fetchall()]
         
-        matched_unit = "ADET"  # Varsayılan
+        matched_unit = "ADET"
         birimi_upper = birimi.strip().upper()
         
-        # Birebir veya benzerlik eşleşmesi
         for u in db_units:
             u_upper = u.upper()
             if birimi_upper == u_upper:
@@ -140,9 +191,7 @@ def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1,
             elif birimi_upper in u_upper or u_upper in birimi_upper:
                 matched_unit = u
         
-        # Ekstra yaygın eşleşmeler
         if birimi_upper in ["KİLO", "KİLOGRAM", "KG"]:
-            # DB'de 'KG' araması yap
             matched_unit = next((u for u in db_units if u.upper() == 'KG'), 'KG')
         elif birimi_upper in ["TANE", "ADET", "PIECE", "PCS"]:
             matched_unit = next((u for u in db_units if u.upper() == 'ADET'), 'ADET')
@@ -230,7 +279,44 @@ def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1,
             'satis_fiyati_1': satis_fiyati_1,
             'alis_fiyati_1': alis_fiyati_1
         }
+    except Exception as e:
+        con.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        cur.close()
+        con.close()
 
+
+def delete_stock_db(stok_kodu=None, stok_adi=None):
+    """Veritabanından stok kartını ve fiyatlarını siler"""
+    if not stok_kodu and not stok_adi:
+        return {'success': False, 'error': 'Silinecek stok belirlenemedi.'}
+
+    con = get_db()
+    cur = con.cursor()
+    try:
+        # Önce stoğu bul
+        if stok_kodu:
+            cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOKKODU) = UPPER(?)", (stok_kodu.strip(),))
+        else:
+            cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOK_ADI) = UPPER(?)", (stok_adi.strip(),))
+        
+        row = cur.fetchone()
+        if not row:
+            return {'success': False, 'error': f"Silinmek istenen stok bulunamadı ({stok_kodu or stok_adi})."}
+
+        blkodu = row[0]
+        deleted_name = row[1].strip()
+        deleted_code = row[2].strip()
+
+        # Önce fiyat kayıtlarını sil
+        cur.execute("DELETE FROM STOK_FIYAT WHERE BLSTKODU = ?", (blkodu,))
+        
+        # Sonra stok kaydını sil
+        cur.execute("DELETE FROM STOK WHERE BLKODU = ?", (blkodu,))
+        
+        con.commit()
+        return {'success': True, 'stok_adi': deleted_name, 'stok_kodu': deleted_code}
     except Exception as e:
         con.rollback()
         return {'success': False, 'error': str(e)}
@@ -252,7 +338,6 @@ def get_stocks():
     stocks = []
     for row in cur.fetchall():
         stok_blkodu = row[0]
-        # Fiyatları çek
         cur2 = con.cursor()
         cur2.execute("""
             SELECT TANIMI, FIYATI, ALIS_SATIS, FIYAT_NO
@@ -321,7 +406,7 @@ def chat():
                 {"role": "user", "content": user_message}
             ],
             temperature=0.1,
-            max_tokens=300,
+            max_tokens=500,
         )
 
         ai_response = response.choices[0].message.content.strip()
@@ -338,17 +423,18 @@ def chat():
                 'tokens': tokens_used
             })
 
-        action = ai_json.get('action', '')
-
-        if action == 'stok_ekle':
+        actions = ai_json.get('actions', [])
+        
+        # Eğer sadece soru sorulduysa
+        if len(actions) == 1 and actions[0].get('action') == 'soru':
             return jsonify({
-                'type': 'preview',
-                'data': ai_json,
-                'tokens': tokens_used,
-                'message': f"🛒 **{ai_json.get('stok_adi', '')}** eklenecek. Onaylıyor musun?"
+                'type': 'answer',
+                'message': actions[0].get('cevap', 'Anlayamadım.'),
+                'tokens': tokens_used
             })
 
-        elif action == 'listele':
+        # Eğer listeleme varsa
+        if any(a.get('action') == 'listele' for a in actions):
             stocks = get_stocks()
             return jsonify({
                 'type': 'list',
@@ -357,56 +443,73 @@ def chat():
                 'message': f'📦 Toplam {len(stocks)} stok kartı bulundu.'
             })
 
-        elif action == 'soru':
-            return jsonify({
-                'type': 'answer',
-                'message': ai_json.get('cevap', 'Anlayamadım.'),
-                'tokens': tokens_used
-            })
-
-        else:
-            return jsonify({
-                'type': 'answer',
-                'message': ai_response,
-                'tokens': tokens_used
-            })
+        # Önizleme formatında eylemleri dönelim
+        return jsonify({
+            'type': 'preview',
+            'actions': actions,
+            'tokens': tokens_used,
+            'message': f"⚙️ **{len(actions)}** adet işlem planlandı. Onaylıyor musun?"
+        })
 
     except Exception as e:
         return jsonify({'type': 'error', 'message': str(e)}), 500
 
 
 @app.route('/api/confirm', methods=['POST'])
-def confirm_add():
+def confirm_actions():
     data = request.json
+    actions = data.get('actions', [])
+    
+    if not actions:
+        return jsonify({'error': 'İşlem bulunamadı'}), 400
 
-    result = add_stock(
-        stok_adi=data.get('stok_adi', 'Bilinmeyen'),
-        grubu=data.get('grubu', 'Genel'),
-        birimi=data.get('birimi', 'ADET'),
-        kdv_orani=float(data.get('kdv_orani', 20)),
-        satis_fiyati_1=float(data.get('satis_fiyati_1', 0)),
-        alis_fiyati_1=float(data.get('alis_fiyati_1', 0)),
-        aciklama=data.get('aciklama', '')
-    )
+    results = []
+    success_count = 0
 
-    if result['success']:
-        return jsonify({
-            'type': 'success',
-            'message': f"✅ **{result['stok_adi']}** başarıyla eklendi!\n\n"
-                       f"📋 Stok Kodu: `{result['stok_kodu']}`\n"
-                       f"📦 Grup: {result['grubu']}\n"
-                       f"⚖️ Birim: {result['birimi']}\n"
-                       f"💰 Satış: {result['satis_fiyati_1']:.2f} TL\n"
-                       f"🛍️ Alış: {result['alis_fiyati_1']:.2f} TL\n"
-                       f"📊 KDV: %{result['kdv_orani']:.0f}\n\n"
-                       f"Wolvox'ta **Stok Tanımları > Bul** ile kontrol edebilirsin.",
-            'data': result
-        })
-    else:
-        return jsonify({
-            'type': 'error',
-            'message': f"❌ Hata: {result['error']}"
-        }), 500
+    for idx, act in enumerate(actions, 1):
+        action_type = act.get('action')
+        
+        if action_type == 'grup_ekle':
+            grup_adi = act.get('grup_adi')
+            res = add_group_db(grup_adi)
+            if res['success']:
+                success_count += 1
+                results.append(f"{idx}. {res['msg']}")
+            else:
+                results.append(f"{idx}. ❌ Grup Ekleme Hatası ({grup_adi}): {res['error']}")
+
+        elif action_type == 'stok_ekle':
+            res = add_stock_db(
+                stok_adi=act.get('stok_adi', 'Bilinmeyen'),
+                grubu=act.get('grubu', 'Genel'),
+                birimi=act.get('birimi', 'ADET'),
+                kdv_orani=float(act.get('kdv_orani', 20)),
+                satis_fiyati_1=float(act.get('satis_fiyati_1', 0)),
+                alis_fiyati_1=float(act.get('alis_fiyati_1', 0)),
+                aciklama=act.get('aciklama', '')
+            )
+            if res['success']:
+                success_count += 1
+                results.append(f"{idx}. ✅ **{res['stok_adi']}** eklendi! (Kod: `{res['stok_kodu']}` - Fiyat: {res['satis_fiyati_1']:.2f} TL)")
+            else:
+                results.append(f"{idx}. ❌ Stok Ekleme Hatası ({act.get('stok_adi')}): {res['error']}")
+
+        elif action_type == 'stok_sil':
+            stok_kodu = act.get('stok_kodu')
+            stok_adi = act.get('stok_adi')
+            res = delete_stock_db(stok_kodu=stok_kodu, stok_adi=stok_adi)
+            if res['success']:
+                success_count += 1
+                results.append(f"{idx}. 🗑️ **{res['stok_adi']}** (Kod: `{res['stok_kodu']}`) başarıyla silindi.")
+            else:
+                results.append(f"{idx}. ❌ Stok Silme Hatası ({stok_kodu or stok_adi}): {res['error']}")
+
+    summary_msg = f"📊 **{success_count} / {len(actions)}** işlem başarıyla tamamlandı.\n\n" + "\n".join(results)
+    
+    return jsonify({
+        'type': 'success',
+        'message': summary_msg
+    })
 
 
 @app.route('/api/stocks', methods=['GET'])
@@ -429,7 +532,7 @@ def list_groups():
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("  Wolvox AI Akıllı Stok Yönetimi Başlatıldı")
+    print("  Wolvox AI Akıllı Çoklu Eylem Yönetimi Başlatıldı")
     print("  http://localhost:5000")
     print("=" * 50)
     app.run(debug=True, port=5000)

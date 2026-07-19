@@ -580,22 +580,32 @@
                 const result = await response.json();
 
                 if (result.type === 'preview') {
-                    currentPendingData = result.data;
+                    currentPendingData = { actions: result.actions };
+                    
+                    // Çoklu eylem listesi HTML oluştur
+                    let actionsListHtml = '';
+                    result.actions.forEach((act, idx) => {
+                        let details = '';
+                        if (act.action === 'grup_ekle') {
+                            details = `<span style="color: var(--accent-primary)">[Grup Ekle]</span> 📂 <strong>${act.grup_adi}</strong>`;
+                        } else if (act.action === 'stok_ekle') {
+                            details = `<span style="color: var(--accent-success)">[Stok Ekle]</span> 🛒 <strong>${act.stok_adi}</strong> (Grup: ${act.grubu}, Birim: ${act.birimi}, Fiyat: ${act.satis_fiyati_1} TL, KDV: %${act.kdv_orani})`;
+                        } else if (act.action === 'stok_sil') {
+                            details = `<span style="color: red">[Stok Sil]</span> 🗑️ <strong>${act.stok_kodu || act.stok_adi}</strong>`;
+                        }
+                        actionsListHtml += `<div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;">${idx+1}. ${details}</div>`;
+                    });
+
                     const previewHtml = `
                         <div>
                             ${result.message}
                             <div class="preview-card">
-                                <div class="preview-title">Stok Önizleme</div>
-                                <div class="preview-grid">
-                                    <span class="preview-label">Adı:</span><span class="preview-val">${result.data.stok_adi}</span>
-                                    <span class="preview-label">Grup:</span><span class="preview-val">${result.data.grubu}</span>
-                                    <span class="preview-label">Birim:</span><span class="preview-val">${result.data.birimi}</span>
-                                    <span class="preview-label">KDV:</span><span class="preview-val">%${result.data.kdv_orani}</span>
-                                    <span class="preview-label">Alış:</span><span class="preview-val">${result.data.alis_fiyati_1} TL</span>
-                                    <span class="preview-label">Satış:</span><span class="preview-val">${result.data.satis_fiyati_1} TL</span>
+                                <div class="preview-title">Planlanan Eylemler</div>
+                                <div style="margin: 8px 0; max-height: 200px; overflow-y: auto;">
+                                    ${actionsListHtml}
                                 </div>
                                 <div class="btn-group">
-                                    <button class="btn btn-primary" onclick="confirmAdd()">Onayla ve Kaydet</button>
+                                    <button class="btn btn-primary" onclick="confirmAdd()">Tümünü Onayla ve Çalıştır</button>
                                     <button class="btn btn-secondary" onclick="rejectAdd()">İptal Et</button>
                                 </div>
                             </div>
@@ -640,7 +650,7 @@
                     appendMessage('ai', result.message);
                 }
             } catch (err) {
-                appendMessage('ai', 'Kayıt sırasında hata oluştu: ' + err.message);
+                appendMessage('ai', 'Eylemler çalıştırılırken hata oluştu: ' + err.message);
             } finally {
                 currentPendingData = null;
             }
