@@ -680,8 +680,18 @@
                             details = `<span style="color: var(--accent-primary)">[Grup Ekle]</span> 📂 <strong>${act.grup_adi}</strong>`;
                         } else if (act.action === 'grup_sil') {
                             details = `<span style="color: #ef4444">[Grup Sil]</span> 🗑️ 📂 <strong>${act.grup_adi}</strong>`;
+                        } else if (act.action === 'grup_guncelle') {
+                            details = `<span style="color: var(--accent-warning)">[Grup Güncelle]</span> 📂 Orijinal: <strong>${act.eski_grup_adi}</strong> ➡️ Yeni: <strong>${act.yeni_grup_adi}</strong>`;
                         } else if (act.action === 'stok_ekle') {
                             details = `<span style="color: var(--accent-success)">[Stok Ekle]</span> 🛒 <strong>${act.stok_adi}</strong> (Grup: ${act.grubu}, Birim: ${act.birimi}, Fiyat: ${act.satis_fiyati_1} TL, KDV: %${act.kdv_orani})`;
+                        } else if (act.action === 'stok_guncelle') {
+                            let changes = [];
+                            if (act.yeni_stok_adi) changes.push(`Adı: ${act.yeni_stok_adi}`);
+                            if (act.yeni_grubu) changes.push(`Grup: ${act.yeni_grubu}`);
+                            if (act.yeni_kdv_orani !== null && act.yeni_kdv_orani !== undefined) changes.push(`KDV: %${act.yeni_kdv_orani}`);
+                            if (act.yeni_satis_fiyati_1 !== null && act.yeni_satis_fiyati_1 !== undefined) changes.push(`Satış: ${act.yeni_satis_fiyati_1} TL`);
+                            if (act.yeni_alis_fiyati_1 !== null && act.yeni_alis_fiyati_1 !== undefined) changes.push(`Alış: ${act.yeni_alis_fiyati_1} TL`);
+                            details = `<span style="color: var(--accent-warning)">[Stok Güncelle]</span> 🔄 <strong>${act.stok_kodu || act.stok_adi}</strong> (${changes.join(', ')})`;
                         } else if (act.action === 'stok_sil') {
                             details = `<span style="color: red">[Stok Sil]</span> 🗑️ 🛒 <strong>${act.stok_kodu || act.stok_adi}</strong>`;
                         }

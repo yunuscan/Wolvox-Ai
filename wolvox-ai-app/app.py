@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Wolvox AI Stok Yönetimi - Flask Backend
-Groq API + Firebird veritabanı entegrasyonu (Akıllı Tahmin, Çoklu Eylem, Grup Silme & Stok Adıyla Silme)
+Groq API + Firebird veritabanı entegrasyonu (Güncelleme, Güvenli Silme ve Türkçe Karakter Uyumlu Akıllı Eşleştirme)
 """
 from flask import Flask, render_template, request, jsonify
 from groq import Groq
@@ -41,6 +41,24 @@ def get_db():
     )
 
 
+def tr_normalize(text):
+    """Türkçe karakterleri ve boşlukları normalize eder (Case-insensitive & Accent-insensitive eşleşme için)"""
+    if not text:
+        return ""
+    text = text.strip().lower()
+    replacements = {
+        'ı': 'i', 'İ': 'i', 'i': 'i', 'I': 'i',
+        'ş': 's', 'Ş': 's',
+        'ğ': 'g', 'Ğ': 'g',
+        'ç': 'c', 'Ç': 'c',
+        'ö': 'o', 'Ö': 'o',
+        'ü': 'u', 'Ü': 'u'
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    return text
+
+
 def get_db_definitions():
     """Veritabanındaki mevcut stok gruplarını ve birim tanımlarını getir"""
     groups = []
@@ -48,15 +66,10 @@ def get_db_definitions():
     try:
         con = get_db()
         cur = con.cursor()
-        
-        # Grupları çek
-        cur.execute("SELECT DISTINCT GRUP_ADI FROM GRUP WHERE MODUL = 'STOK' AND GRUP_ADI IS NOT NULL ORDER BY GRUP_ADI")
-        groups = [row[0].strip() for row in cur.fetchall()]
-        
-        # Birimleri çek
-        cur.execute("SELECT DISTINCT BIRIMI FROM STOK_BIRIMLERI WHERE BIRIMI IS NOT NULL ORDER BY BIRIMI")
-        units = [row[0].strip() for row in cur.fetchall()]
-        
+        cur.execute("SELECT DISTINCT TRIM(GRUP_ADI) FROM GRUP WHERE TRIM(MODUL) = 'STOK' AND GRUP_ADI IS NOT NULL ORDER BY GRUP_ADI")
+        groups = [row[0] for row in cur.fetchall()]
+        cur.execute("SELECT DISTINCT TRIM(BIRIMI) FROM STOK_BIRIMLERI WHERE BIRIMI IS NOT NULL ORDER BY BIRIMI")
+        units = [row[0] for row in cur.fetchall()]
         cur.close()
         con.close()
     except Exception as e:
@@ -66,7 +79,7 @@ def get_db_definitions():
 
 
 def build_system_prompt():
-    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur (Grup Silme ve Stok Adıyla Silme Destekli)"""
+    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur (Güncelleme Destekli)"""
     groups, units = get_db_definitions()
     
     groups_str = ", ".join([f"'{g}'" for g in groups]) if groups else "'Genel'"
@@ -83,44 +96,47 @@ DESTEKLENEN EYLEMLER VE FORMATLARI:
 
 1. Stok Ekleme (stok_ekle):
    - Ürün adından KDV, grup ve birimi akıllıca tahmin et (kullanıcı belirtmemişse).
-   - KDV tahminleri: Gıda ürünlerinde %10, temizlik/hijyen/elektronik ürünlerinde %20.
-   - Birim tahminleri: KG, ADET, Litre vb. veritabanında tanımlı olanlardan seç.
-   - Format: {{"action":"stok_ekle","stok_adi":"...","grubu":"...","birimi":"...","kdv_orani":0,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":"..."}}
+   - Format: {{"action":"stok_ekle","stok_adi":"...","grubu":"...","birimi":"...","kdv_orani":20,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":"..."}}
 
 2. Grup Ekleme (grup_ekle):
-   - Kullanıcı yeni bir grup tanımlamak istediğinde tetiklenir (örn: "Şarküteri grubu oluştur", "Yeni grup ekle: Manav").
    - Format: {{"action":"grup_ekle","grup_adi":"..."}}
 
 3. Grup Silme (grup_sil):
-   - Kullanıcı mevcut bir grubu silmek istediğinde tetiklenir (örn: "Şarküteri grubunu sil", "Manav grubunu iptal et").
    - Format: {{"action":"grup_sil","grup_adi":"..."}}
 
 4. Stok Silme (stok_sil):
-   - Kullanıcı belirli bir stok kodunu veya stok ADINI silmek istediğinde tetiklenir (örn: "ST00001 kodlu ürünü sil", "Muz stoğunu sil", "Nohut ürününü sil").
-   - Kullanıcı kodu belirtmediyse sadece stok_adi alanını doldur.
+   - Stok kodu veya adı ile silme desteği vardır.
    - Format: {{"action":"stok_sil","stok_kodu":"...","stok_adi":"..."}}
 
-5. Stokları Listeleme (listele):
-   - Kullanıcı stokları listelemek istediğinde tetiklenir.
+5. Stok Güncelleme (stok_guncelle):
+   - Fiyat değişikliği, grup değişikliği, KDV oranı değişikliği, stok adı değişikliği durumlarında tetiklenir.
+   - Kullanıcı "Mercimeğin fiyatını 50 TL yap" / "Muzun adını İthal Muz yap" / "Sabunun KDV'sini %10 yap" / "Muzun grubunu Manav yap" dediğinde tetiklenir.
+   - Hangileri güncelleniyorsa o alanları doldur, değişmeyen alanları boş/null bırak.
+   - Format: {{"action":"stok_guncelle","stok_kodu":"...","stok_adi":"...","yeni_stok_adi":"...","yeni_grubu":"...","yeni_kdv_orani":null,"yeni_satis_fiyati_1":null,"yeni_alis_fiyati_1":null}}
+
+6. Grup Güncelleme (grup_guncelle):
+   - Grup adı değişikliği durumunda tetiklenir (örn: "Bakliyat grubunun adını Kuru Gıda yap").
+   - Format: {{"action":"grup_guncelle","eski_grup_adi":"...","yeni_grup_adi":"..."}}
+
+7. Stokları Listeleme (listele):
    - Format: {{"action":"listele"}}
 
 ÇOKLU TALİMAT YÖNETİMİ:
-Kullanıcı tek bir mesajda birden fazla istek yapabilir (örn: "Şarküteri grubunu sil, Manav grubu oluştur ve içine Armut ekle").
-Bu durumda tüm eylemleri sırasıyla "actions" dizisine ekle.
+Kullanıcı tek bir mesajda birden fazla istek yapabilir (örn: "Muzun fiyatını 90 TL yap ve Manav grubunun adını Meyve yap").
+Tüm eylemleri sırasıyla "actions" dizisine ekle.
 
 DÖNECEK JSON FORMATI (SADECE JSON DÖN, BAŞKA METİN EKLEME):
 {{
   "actions": [
-    {{ "action": "grup_sil", "grup_adi": "Şarküteri" }},
-    {{ "action": "grup_ekle", "grup_adi": "Manav" }},
-    {{ "action": "stok_ekle", "stok_adi": "Armut", "grubu": "Manav", "birimi": "KG", "kdv_orani": 10, "satis_fiyati_1": 0, "alis_fiyati_1": 0, "aciklama": "" }}
+    {{ "action": "stok_guncelle", "stok_adi": "Muz", "yeni_satis_fiyati_1": 90.0 }},
+    {{ "action": "grup_guncelle", "eski_grup_adi": "Manav", "yeni_grup_adi": "Meyve" }}
   ]
 }}
 
-Eğer eylem yoksa ve sadece soru soruluyorsa:
+Eğer soru soruluyorsa:
 {{
   "actions": [
-    {{ "action": "soru", "cevap": "Sorunun cevabı buraya gelecek." }}
+    {{ "action": "soru", "cevap": "Cevap metni." }}
   ]
 }}
 """
@@ -128,7 +144,7 @@ Eğer eylem yoksa ve sadece soru soruluyorsa:
 
 
 def add_group_db(grup_adi):
-    """Veritabanına yeni grup ekle"""
+    """Veritabanına yeni grup ekle (Türkçe karakter uyumlu)"""
     grup_adi = grup_adi.strip()
     if not grup_adi:
         return {'success': False, 'error': 'Grup adı boş olamaz.'}
@@ -136,12 +152,16 @@ def add_group_db(grup_adi):
     con = get_db()
     cur = con.cursor()
     try:
-        # Case-insensitive varlık kontrolü
-        cur.execute("SELECT BLKODU FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grup_adi,))
-        row = cur.fetchone()
-        if row:
-            return {'success': True, 'msg': f"'{grup_adi}' grubu zaten mevcut.", 'blkodu': row[0]}
+        # Mevcut grupları çekip Python tarafında eşleştirelim
+        cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE TRIM(MODUL) = 'STOK'")
+        rows = cur.fetchall()
+        
+        target = tr_normalize(grup_adi)
+        for blkodu, db_g_adi in rows:
+            if tr_normalize(db_g_adi) == target:
+                return {'success': True, 'msg': f"'{db_g_adi.strip()}' grubu zaten mevcut.", 'blkodu': blkodu}
 
+        # Yoksa yeni grup ekle
         cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
         grup_blkodu = cur.fetchone()[0]
         cur.execute("""
@@ -159,7 +179,7 @@ def add_group_db(grup_adi):
 
 
 def delete_group_db(grup_adi):
-    """Veritabanından grubu siler"""
+    """Veritabanından grubu siler (Grup altında stok varsa ENGELLE - Türkçe karakter uyumlu)"""
     grup_adi = grup_adi.strip()
     if not grup_adi:
         return {'success': False, 'error': 'Grup adı belirtilmedi.'}
@@ -167,15 +187,90 @@ def delete_group_db(grup_adi):
     con = get_db()
     cur = con.cursor()
     try:
-        cur.execute("SELECT BLKODU FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grup_adi,))
-        row = cur.fetchone()
-        if not row:
+        # Tüm grupları çekip Python tarafında eşleştirelim
+        cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE TRIM(MODUL) = 'STOK'")
+        rows = cur.fetchall()
+        
+        target = tr_normalize(grup_adi)
+        matched_blkodu = None
+        matched_grup_adi = None
+        
+        for blkodu, db_g_adi in rows:
+            if tr_normalize(db_g_adi) == target:
+                matched_blkodu = blkodu
+                matched_grup_adi = db_g_adi.strip()
+                break
+                
+        if not matched_blkodu:
             return {'success': False, 'error': f"Silinmek istenen grup bulunamadı ({grup_adi})."}
 
-        blkodu = row[0]
-        cur.execute("DELETE FROM GRUP WHERE BLKODU = ?", (blkodu,))
+        # Bu gruba bağlı stok var mı kontrol et (STOK tablosundaki GRUBU alanlarını çekip Python ile eşleştirelim)
+        cur.execute("SELECT GRUBU FROM STOK WHERE GRUBU IS NOT NULL")
+        stok_groups = [r[0].strip() for r in cur.fetchall()]
+        
+        # Eşleşme var mı?
+        stock_count = sum(1 for sg in stok_groups if tr_normalize(sg) == target)
+        
+        if stock_count > 0:
+            return {
+                'success': False, 
+                'error': f"Bu gruba bağlı <strong>{stock_count}</strong> adet stok var. Stokları silmeden grubu silemezsiniz!"
+            }
+
+        # Engelleme yoksa grubu sil
+        cur.execute("DELETE FROM GRUP WHERE BLKODU = ?", (matched_blkodu,))
         con.commit()
-        return {'success': True, 'msg': f"🗑️ '{grup_adi}' grubu başarıyla silindi."}
+        return {'success': True, 'msg': f"🗑️ '{matched_grup_adi}' grubu başarıyla silindi."}
+    except Exception as e:
+        con.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        cur.close()
+        con.close()
+
+
+def update_group_name_db(eski_grup_adi, yeni_grup_adi):
+    """Grup adını günceller (Türkçe karakter uyumlu)"""
+    eski_grup_adi = eski_grup_adi.strip()
+    yeni_grup_adi = yeni_grup_adi.strip()
+    if not eski_grup_adi or not yeni_grup_adi:
+        return {'success': False, 'error': 'Eski ve yeni grup adları belirtilmelidir.'}
+
+    con = get_db()
+    cur = con.cursor()
+    try:
+        # Grubu bul
+        cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE TRIM(MODUL) = 'STOK'")
+        rows = cur.fetchall()
+        
+        target = tr_normalize(eski_grup_adi)
+        matched_blkodu = None
+        matched_grup_adi = None
+        
+        for blkodu, db_g_adi in rows:
+            if tr_normalize(db_g_adi) == target:
+                matched_blkodu = blkodu
+                matched_grup_adi = db_g_adi.strip()
+                break
+                
+        if not matched_blkodu:
+            return {'success': False, 'error': f"Güncellenecek grup bulunamadı ({eski_grup_adi})."}
+
+        # 1. GRUP tablosunu güncelle
+        cur.execute("UPDATE GRUP SET GRUP_ADI = ? WHERE BLKODU = ?", (yeni_grup_adi, matched_blkodu))
+        
+        # 2. STOK tablosunu güncelle (ilişkili stokların GRUBU alanını değiştir)
+        cur.execute("SELECT BLKODU, GRUBU FROM STOK WHERE GRUBU IS NOT NULL")
+        stok_rows = cur.fetchall()
+        
+        updated_stocks = 0
+        for s_blkodu, s_grubu in stok_rows:
+            if tr_normalize(s_grubu) == target:
+                cur.execute("UPDATE STOK SET GRUBU = ? WHERE BLKODU = ?", (yeni_grup_adi, s_blkodu))
+                updated_stocks += 1
+        
+        con.commit()
+        return {'success': True, 'msg': f"🔄 '{matched_grup_adi}' grubunun adı '{yeni_grup_adi}' olarak güncellendi. ({updated_stocks} stok güncellendi)"}
     except Exception as e:
         con.rollback()
         return {'success': False, 'error': str(e)}
@@ -191,13 +286,21 @@ def add_stock_db(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati
     now = datetime.now()
 
     try:
-        # 1. GRUP KONTROL / OLUŞTUR (Case-insensitive)
-        cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grubu.strip(),))
-        row = cur.fetchone()
-        if row:
-            grup_adi = row[1].strip()
+        # 1. GRUP KONTROL / OLUŞTUR (Türkçe karakter uyumlu)
+        cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE TRIM(MODUL) = 'STOK'")
+        rows = cur.fetchall()
+        
+        target = tr_normalize(grubu)
+        matched_grup_adi = None
+        
+        for blkodu, db_g_adi in rows:
+            if tr_normalize(db_g_adi) == target:
+                matched_grup_adi = db_g_adi.strip()
+                break
+                
+        if matched_grup_adi:
+            grup_adi = matched_grup_adi
         else:
-            # Grup yoksa oluştur
             cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
             grup_blkodu = cur.fetchone()[0]
             cur.execute("""
@@ -258,8 +361,8 @@ def add_stock_db(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati
                 ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
+                1, '153', '600', '601',
+                '610', '610', '621', 'V01', 1,
                 ?
             )
         """, (
@@ -270,8 +373,6 @@ def add_stock_db(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati
             0, 0, 0, 0,
             0, 0, 0, 0,
             0, 0, 1, 0,
-            1, '153', '600', '601',
-            '610', '610', '621', 'V01', 1,
             aciklama
         ))
 
@@ -317,39 +418,171 @@ def add_stock_db(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati
         con.close()
 
 
+def update_stock_db(stok_kodu=None, stok_adi=None, yeni_stok_adi=None, yeni_grubu=None, yeni_kdv_orani=None, yeni_satis_fiyati_1=None, yeni_alis_fiyati_1=None):
+    """Stok kartını ve fiyatlarını günceller (Türkçe karakter uyumlu)"""
+    if not stok_kodu and not stok_adi:
+        return {'success': False, 'error': 'Güncellenecek stok belirlenemedi.'}
+
+    con = get_db()
+    cur = con.cursor()
+    try:
+        # Önce stoğu bul (Türkçe karakter normalizasyonu ile)
+        cur.execute("SELECT BLKODU, STOKKODU, STOK_ADI FROM STOK")
+        rows = cur.fetchall()
+        
+        matched_blkodu = None
+        actual_code = None
+        actual_name = None
+        
+        if stok_kodu and stok_kodu.strip():
+            target_code = tr_normalize(stok_kodu)
+            for blkodu, s_kod, s_ad in rows:
+                if tr_normalize(s_kod) == target_code:
+                    matched_blkodu = blkodu
+                    actual_code = s_kod.strip()
+                    actual_name = s_ad.strip()
+                    break
+        else:
+            target_name = tr_normalize(stok_adi)
+            for blkodu, s_kod, s_ad in rows:
+                if tr_normalize(s_ad) == target_name:
+                    matched_blkodu = blkodu
+                    actual_code = s_kod.strip()
+                    actual_name = s_ad.strip()
+                    break
+                    
+            # Tam ad bulunamadıysa LIKE şeklinde ara
+            if not matched_blkodu and stok_adi:
+                for blkodu, s_kod, s_ad in rows:
+                    if target_name in tr_normalize(s_ad):
+                        matched_blkodu = blkodu
+                        actual_code = s_kod.strip()
+                        actual_name = s_ad.strip()
+                        break
+
+        if not matched_blkodu:
+            return {'success': False, 'error': f"Güncellenecek stok bulunamadı ({stok_kodu or stok_adi})."}
+
+        blkodu = matched_blkodu
+
+        # 1. STOK tablosunu güncelle
+        updates = []
+        params = []
+        
+        if yeni_stok_adi:
+            updates.append("STOK_ADI = ?")
+            params.append(yeni_stok_adi.strip())
+            
+        if yeni_grubu:
+            yeni_grubu = yeni_grubu.strip()
+            # Grup tablosunda var mı bak, yoksa oluştur (Türkçe karakter uyumlu)
+            cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE TRIM(MODUL) = 'STOK'")
+            g_rows = cur.fetchall()
+            
+            target_g = tr_normalize(yeni_grubu)
+            matched_g_adi = None
+            for g_blkodu, db_g_adi in g_rows:
+                if tr_normalize(db_g_adi) == target_g:
+                    matched_g_adi = db_g_adi.strip()
+                    break
+                    
+            if matched_g_adi:
+                yeni_grubu_res = matched_g_adi
+            else:
+                cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
+                grup_blkodu = cur.fetchone()[0]
+                cur.execute("INSERT INTO GRUP (BLKODU, GRUP_ADI, MODUL, WEBDE_GORUNSUN) VALUES (?, ?, 'STOK', 1)", (grup_blkodu, yeni_grubu))
+                yeni_grubu_res = yeni_grubu
+                
+            updates.append("GRUBU = ?")
+            params.append(yeni_grubu_res)
+            
+        if yeni_kdv_orani is not None:
+            updates.append("KDV_ORANI = ?")
+            params.append(float(yeni_kdv_orani))
+            updates.append("KDV_ORANI_ALIS = ?")
+            params.append(float(yeni_kdv_orani))
+            updates.append("KDV_ORANI_SATIS_TPT = ?")
+            params.append(float(yeni_kdv_orani))
+
+        if updates:
+            sql = f"UPDATE STOK SET {', '.join(updates)} WHERE BLKODU = ?"
+            params.append(blkodu)
+            cur.execute(sql, tuple(params))
+
+        # 2. Fiyatları Güncelle
+        now = datetime.now()
+        if yeni_satis_fiyati_1 is not None:
+            cur.execute("""
+                UPDATE STOK_FIYAT SET FIYATI = ?, FIYAT_DEG_TARIHI = ? 
+                WHERE BLSTKODU = ? AND ALIS_SATIS = 2 AND FIYAT_NO = 1
+            """, (float(yeni_satis_fiyati_1), now, blkodu))
+
+        if yeni_alis_fiyati_1 is not None:
+            cur.execute("""
+                UPDATE STOK_FIYAT SET FIYATI = ?, FIYAT_DEG_TARIHI = ? 
+                WHERE BLSTKODU = ? AND ALIS_SATIS = 1 AND FIYAT_NO = 1
+            """, (float(yeni_alis_fiyati_1), now, blkodu))
+
+        con.commit()
+        return {'success': True, 'stok_adi': yeni_stok_adi or actual_name, 'stok_kodu': actual_code}
+    except Exception as e:
+        con.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        cur.close()
+        con.close()
+
+
 def delete_stock_db(stok_kodu=None, stok_adi=None):
-    """Veritabanından stok kartını ve fiyatlarını siler (Koda veya Ada göre)"""
+    """Veritabanından stok kartını ve fiyatlarını siler (Türkçe karakter uyumlu)"""
     if not stok_kodu and not stok_adi:
         return {'success': False, 'error': 'Silinecek stok belirlenemedi.'}
 
     con = get_db()
     cur = con.cursor()
     try:
-        # Önce stoğu bul
+        # Tüm stokları çek
+        cur.execute("SELECT BLKODU, STOKKODU, STOK_ADI FROM STOK")
+        rows = cur.fetchall()
+        
+        matched_blkodu = None
+        deleted_name = None
+        deleted_code = None
+        
         if stok_kodu and stok_kodu.strip():
-            cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOKKODU) = UPPER(?)", (stok_kodu.strip(),))
+            target_code = tr_normalize(stok_kodu)
+            for blkodu, s_kod, s_ad in rows:
+                if tr_normalize(s_kod) == target_code:
+                    matched_blkodu = blkodu
+                    deleted_code = s_kod.strip()
+                    deleted_name = s_ad.strip()
+                    break
         else:
-            cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOK_ADI) = UPPER(?)", (stok_adi.strip(),))
-        
-        row = cur.fetchone()
-        
-        # Eğer tam ad eşleşmediyse benzerlik (LIKE) ile ara
-        if not row and stok_adi:
-            cur.execute("SELECT BLKODU, STOK_ADI, STOKKODU FROM STOK WHERE UPPER(STOK_ADI) LIKE UPPER(?)", (f"%{stok_adi.strip()}%",))
-            row = cur.fetchone()
-            
-        if not row:
+            target_name = tr_normalize(stok_adi)
+            for blkodu, s_kod, s_ad in rows:
+                if tr_normalize(s_ad) == target_name:
+                    matched_blkodu = blkodu
+                    deleted_code = s_kod.strip()
+                    deleted_name = s_ad.strip()
+                    break
+                    
+            if not matched_blkodu and stok_adi:
+                for blkodu, s_kod, s_ad in rows:
+                    if target_name in tr_normalize(s_ad):
+                        matched_blkodu = blkodu
+                        deleted_code = s_kod.strip()
+                        deleted_name = s_ad.strip()
+                        break
+
+        if not matched_blkodu:
             return {'success': False, 'error': f"Silinmek istenen stok bulunamadı ({stok_kodu or stok_adi})."}
 
-        blkodu = row[0]
-        deleted_name = row[1].strip()
-        deleted_code = row[2].strip()
-
         # Önce fiyat kayıtlarını sil
-        cur.execute("DELETE FROM STOK_FIYAT WHERE BLSTKODU = ?", (blkodu,))
+        cur.execute("DELETE FROM STOK_FIYAT WHERE BLSTKODU = ?", (matched_blkodu,))
         
         # Sonra stok kaydını sil
-        cur.execute("DELETE FROM STOK WHERE BLKODU = ?", (blkodu,))
+        cur.execute("DELETE FROM STOK WHERE BLKODU = ?", (matched_blkodu,))
         
         con.commit()
         return {'success': True, 'stok_adi': deleted_name, 'stok_kodu': deleted_code}
@@ -407,11 +640,11 @@ def get_stocks():
 
 
 def get_existing_groups():
-    """Mevcut stok gruplarını getir"""
+    """Mevcut stok gruplarını getir (TRIM & MODUL uygulandı)"""
     con = get_db()
     cur = con.cursor()
-    cur.execute("SELECT GRUP_ADI FROM GRUP WHERE MODUL = 'STOK' ORDER BY GRUP_ADI")
-    groups = [row[0].strip() for row in cur.fetchall()]
+    cur.execute("SELECT DISTINCT TRIM(GRUP_ADI) FROM GRUP WHERE TRIM(MODUL) = 'STOK' ORDER BY GRUP_ADI")
+    groups = [row[0] for row in cur.fetchall()]
     cur.close()
     con.close()
     return groups
@@ -521,7 +754,17 @@ def confirm_actions():
                 success_count += 1
                 results.append(f"{idx}. {res['msg']}")
             else:
-                results.append(f"{idx}. ❌ Grup Silme Hatası ({grup_adi}): {res['error']}")
+                results.append(f"{idx}. ❌ {res['error']}")
+
+        elif action_type == 'grup_guncelle':
+            eski = act.get('eski_grup_adi')
+            yeni = act.get('yeni_grup_adi')
+            res = update_group_name_db(eski, yeni)
+            if res['success']:
+                success_count += 1
+                results.append(f"{idx}. {res['msg']}")
+            else:
+                results.append(f"{idx}. ❌ Grup Güncelleme Hatası: {res['error']}")
 
         elif action_type == 'stok_ekle':
             res = add_stock_db(
@@ -538,6 +781,22 @@ def confirm_actions():
                 results.append(f"{idx}. ✅ **{res['stok_adi']}** eklendi! (Kod: `{res['stok_kodu']}` - Fiyat: {res['satis_fiyati_1']:.2f} TL)")
             else:
                 results.append(f"{idx}. ❌ Stok Ekleme Hatası ({act.get('stok_adi')}): {res['error']}")
+
+        elif action_type == 'stok_guncelle':
+            res = update_stock_db(
+                stok_kodu=act.get('stok_kodu'),
+                stok_adi=act.get('stok_adi'),
+                yeni_stok_adi=act.get('yeni_stok_adi'),
+                yeni_grubu=act.get('yeni_grubu'),
+                yeni_kdv_orani=act.get('yeni_kdv_orani'),
+                yeni_satis_fiyati_1=act.get('yeni_satis_fiyati_1'),
+                yeni_alis_fiyati_1=act.get('yeni_alis_fiyati_1')
+            )
+            if res['success']:
+                success_count += 1
+                results.append(f"{idx}. 🔄 **{res['stok_adi']}** (Kod: `{res['stok_kodu']}`) güncellendi.")
+            else:
+                results.append(f"{idx}. ❌ Güncelleme Hatası ({act.get('stok_kodu') or act.get('stok_adi')}): {res['error']}")
 
         elif action_type == 'stok_sil':
             stok_kodu = act.get('stok_kodu')
