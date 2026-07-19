@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 Wolvox AI Stok Yönetimi - Flask Backend
-Groq API + Firebird veritabanı entegrasyonu
+Groq API + Firebird veritabanı entegrasyonu (Akıllı Tahmin & Grup-Birim Kontrolü)
 """
 from flask import Flask, render_template, request, jsonify
 from groq import Groq
 import fdb
 import json
 import re
-from datetime import datetime
-
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 
 # .env dosyasını yükle
@@ -32,40 +31,6 @@ DB_CHARSET = "WIN1254"
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# ===== SYSTEM PROMPT =====
-SYSTEM_PROMPT = """Sen bir Wolvox ERP stok yönetim asistanısın. Kullanıcı sana doğal dilde stok ekleme talimatı verecek.
-Görevin, kullanıcının mesajından stok bilgilerini çıkarıp JSON formatında döndürmek.
-
-KURALLAR:
-1. Kullanıcı mesajından stok bilgilerini çıkar.
-2. Eksik bilgileri varsayılan değerlerle doldur.
-3. SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir metin ekleme.
-4. Türkçe karakterleri doğru kullan.
-
-VARSAYILAN DEĞERLER:
-- birimi: "ADET" (kullanıcı belirtmezse)
-- kdv_orani: 20 (kullanıcı belirtmezse)
-- satis_fiyati_1: 0 (kullanıcı belirtmezse)
-- alis_fiyati_1: 0 (kullanıcı belirtmezse)
-- grubu: "Genel" (kullanıcı belirtmezse)
-
-JSON FORMATI:
-{"action":"stok_ekle","stok_adi":"...","grubu":"...","birimi":"...","kdv_orani":0,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":"..."}
-
-Eğer kullanıcı stok ekleme değil, stok listeleme veya başka bir şey istiyorsa:
-{"action":"listele"} veya {"action":"soru","cevap":"..."}
-
-ÖRNEKLER:
-- "Kuru fasulye ekle 50 liradan alıp 75 liradan satacağım grubu bakliyat kdv %10 birimi KG"
-  → {"action":"stok_ekle","stok_adi":"Kuru Fasulye","grubu":"Bakliyat","birimi":"KG","kdv_orani":10,"satis_fiyati_1":75,"alis_fiyati_1":50,"aciklama":""}
-
-- "Çamaşır suyu ekle"
-  → {"action":"stok_ekle","stok_adi":"Çamaşır Suyu","grubu":"Genel","birimi":"ADET","kdv_orani":20,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":""}
-
-- "Stokları listele"
-  → {"action":"listele"}
-"""
-
 
 def get_db():
     """Firebird veritabanı bağlantısı oluştur"""
@@ -76,15 +41,202 @@ def get_db():
     )
 
 
-def get_existing_groups():
-    """Mevcut stok gruplarını getir"""
+def get_db_definitions():
+    """Veritabanındaki mevcut stok gruplarını ve birim tanımlarını getir"""
+    groups = []
+    units = []
+    try:
+        con = get_db()
+        cur = con.cursor()
+        
+        # Grupları çek
+        cur.execute("SELECT DISTINCT GRUP_ADI FROM GRUP WHERE MODUL = 'STOK' AND GRUP_ADI IS NOT NULL ORDER BY GRUP_ADI")
+        groups = [row[0].strip() for row in cur.fetchall()]
+        
+        # Birimleri çek
+        cur.execute("SELECT DISTINCT BIRIMI FROM STOK_BIRIMLERI WHERE BIRIMI IS NOT NULL ORDER BY BIRIMI")
+        units = [row[0].strip() for row in cur.fetchall()]
+        
+        cur.close()
+        con.close()
+    except Exception as e:
+        print(f"Tanımlar alınırken hata oluştu: {e}")
+    
+    return groups, units
+
+
+def build_system_prompt():
+    """Dinamik olarak veritabanı durumuna göre AI system prompt'u oluşturur"""
+    groups, units = get_db_definitions()
+    
+    groups_str = ", ".join([f"'{g}'" for g in groups]) if groups else "'Genel'"
+    units_str = ", ".join([f"'{u}'" for u in units]) if units else "'ADET', 'KG'"
+
+    prompt = f"""Sen bir Wolvox ERP stok yönetim asistanısın. Kullanıcı sana doğal dilde stok ekleme talimatı verecek.
+Görevin, kullanıcının mesajından stok bilgilerini çıkarıp JSON formatında döndürmek.
+
+VERİTABANINDA MEVCUT TANIMLAR:
+- Tanımlı Stok Grupları: [{groups_str}]
+- Tanımlı Birimler: [{units_str}]
+
+AKILLI TAHMİN KURALLARI:
+1. Kullanıcı stok eklemek istediği ürünün adını verdiğinde (örn. "Kırmızı Mercimek"), KDV oranını, grubunu ve birimini kendisi açıkça belirtmemişse ÜRÜN ADINDAN AKILLICA TAHMİN ET:
+   - GRUP TAHMİNİ: Ürünün adına en uygun grubu yukarıdaki "Tanımlı Stok Grupları" listesinden seç. Eğer listedekilerin hiçbiri uymuyorsa, yeni bir grup ismi uydur (örn. Mercimek için 'Bakliyat', Domates için 'Gıda', Deterjan için 'Temizlik').
+   - KDV TAHMİNİ: Türkiye KDV standartlarına göre en uygun oranı tahmin et (%1, %10 veya %20).
+     * Gıda ürünleri (örn. bakliyat, et, süt, sebze): %10 (temel gıda) veya %1 (toptan/bazı özel gıdalar). Genelde perakende gıdada %10 tercih et.
+     * Temizlik, kozmetik, kişisel bakım (örn. sabun, şampuan, deterjan): %20.
+     * Elektronik, giyim, mobilya, hizmet: %20.
+   - BİRİM TAHMİNİ: Ürünün satılabileceği en mantıklı birimi yukarıdaki "Tanımlı Birimler" listesinden seç (örn. sıvı ürünler için 'Litre' veya 'L', dökme ürünler için 'KG', adetli ürünler için 'ADET').
+
+2. Eğer kullanıcı birim veya grup adını Türkçe olarak farklı yazdıysa (örn. "kilo", "kilogram" -> 'KG'; "tane", "adet" -> 'ADET'; "bakliyatlar" -> 'Bakliyat'), yukarıdaki resmi tanımlarla akıllıca eşleştir.
+
+3. SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir metin ekleme.
+
+JSON FORMATI:
+{{"action":"stok_ekle","stok_adi":"...","grubu":"...","birimi":"...","kdv_orani":0,"satis_fiyati_1":0,"alis_fiyati_1":0,"aciklama":"..."}}
+
+Eğer kullanıcı stok ekleme değil, stok listeleme veya başka bir şey istiyorsa:
+{{"action":"listele"}} veya {{"action":"soru","cevap":"..."}}
+"""
+    return prompt
+
+
+def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1, aciklama=''):
+    """Veritabanına yeni stok kartı ekle"""
     con = get_db()
     cur = con.cursor()
-    cur.execute("SELECT GRUP_ADI FROM GRUP WHERE MODUL = 'STOK' ORDER BY GRUP_ADI")
-    groups = [row[0].strip() for row in cur.fetchall()]
-    cur.close()
-    con.close()
-    return groups
+    now = datetime.now()
+
+    try:
+        # 1. GRUP KONTROL / OLUŞTUR (Case-insensitive)
+        cur.execute("SELECT BLKODU, GRUP_ADI FROM GRUP WHERE UPPER(GRUP_ADI) = UPPER(?) AND MODUL = 'STOK'", (grubu.strip(),))
+        row = cur.fetchone()
+        if row:
+            grup_adi = row[1].strip()  # Eşleşen orijinal grup adını kullan
+        else:
+            # Grup yoksa oluştur
+            cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
+            grup_blkodu = cur.fetchone()[0]
+            cur.execute("""
+                INSERT INTO GRUP (BLKODU, GRUP_ADI, MODUL, WEBDE_GORUNSUN)
+                VALUES (?, ?, 'STOK', 1)
+            """, (grup_blkodu, grubu.strip()))
+            grup_adi = grubu.strip()
+
+        # 2. BİRİM KONTROL / EŞLEŞTİRME
+        # Veritabanındaki tanımlı birimleri alıp benzerlik kontrolü yapalım
+        cur.execute("SELECT BIRIMI FROM STOK_BIRIMLERI")
+        db_units = [r[0].strip() for r in cur.fetchall()]
+        
+        matched_unit = "ADET"  # Varsayılan
+        birimi_upper = birimi.strip().upper()
+        
+        # Birebir veya benzerlik eşleşmesi
+        for u in db_units:
+            u_upper = u.upper()
+            if birimi_upper == u_upper:
+                matched_unit = u
+                break
+            elif birimi_upper in u_upper or u_upper in birimi_upper:
+                matched_unit = u
+        
+        # Ekstra yaygın eşleşmeler
+        if birimi_upper in ["KİLO", "KİLOGRAM", "KG"]:
+            # DB'de 'KG' araması yap
+            matched_unit = next((u for u in db_units if u.upper() == 'KG'), 'KG')
+        elif birimi_upper in ["TANE", "ADET", "PIECE", "PCS"]:
+            matched_unit = next((u for u in db_units if u.upper() == 'ADET'), 'ADET')
+        elif birimi_upper in ["LİTRE", "LITER", "L"]:
+            matched_unit = next((u for u in db_units if u.upper() in ['LİTRE', 'LITRE', 'L']), 'Litre')
+
+        # 3. Stok ID al
+        cur.execute("SELECT GEN_ID(STOK_GEN, 1) FROM RDB$DATABASE")
+        stok_blkodu = cur.fetchone()[0]
+
+        # 4. Stok kodu sayacı
+        cur.execute("SELECT GEN_ID(SAYAC_ST_12_GEN, 1) FROM RDB$DATABASE")
+        sayac = cur.fetchone()[0]
+        stok_kodu = f"ST{sayac:05d}"
+
+        # 5. STOK INSERT
+        cur.execute("""
+            INSERT INTO STOK (
+                BLKODU, STOKKODU, STOK_ADI, BIRIMI, KDV_ORANI, KDV_ORANI_ALIS,
+                KDV_ORANI_SATIS_TPT, KAYIT_TARIHI, GRUBU, KAYDEDEN, AKTIF,
+                DEPO_ADI, SIPARIS_EKLE, SIPARIS_MINIMUM_MIKTAR, SIPARIS_EKLENECEK_MIKTAR,
+                DOVIZ_KULLAN, BAKIYE_UYARI, ANA_STOK, WEBDE_GORUNSUN, SIPARIS_DURUMU,
+                ALIS_ISKONTO_KULLAN, SATIS_ISKONTO_KULLAN, STISK1_KULLAN, STISK2_KULLAN,
+                STISK3_KULLAN, ALISISK1_KULLAN, ALISISK2_KULLAN, ALISISK3_KULLAN,
+                SERINO_KULLAN, KDV_85_KULLAN, SERILOT_MALIYET_ESLESTIR, LOT_PARCALANABILIR,
+                ENTRYKDVDEPARTMAN, MUH_ALIS, MUH_SATIS_YI, MUH_SATIS_YD,
+                MUH_IADE_YI, MUH_IADE_YD, MUH_MALIYET_HESABI, BIRIMLER, BARKOD_TIPI,
+                ACIKLAMA1
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?
+            )
+        """, (
+            stok_blkodu, stok_kodu, stok_adi, matched_unit, kdv_orani, kdv_orani,
+            kdv_orani, now, grup_adi, 'AI_ASSISTANT', 1,
+            '1', 1, 0, 0,
+            0, 0, 0, 0, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 1, 0,
+            1, '153', '600', '601',
+            '610', '610', '621', 'V01', 1,
+            aciklama
+        ))
+
+        # 6. Fiyat kayıtları (4 alış + 4 satış)
+        fiyat_kayitlari = [
+            ('ALIŞ FİYATI -1',  1, 1, alis_fiyati_1),
+            ('ALIŞ FİYATI -2',  1, 2, 0.0),
+            ('ALIŞ FİYATI -3',  1, 3, 0.0),
+            ('ALIŞ FİYATI -4',  1, 4, 0.0),
+            ('SATIŞ FİYATI -1', 2, 1, satis_fiyati_1),
+            ('SATIŞ FİYATI -2', 2, 2, 0.0),
+            ('SATIŞ FİYATI -3', 2, 3, 0.0),
+            ('SATIŞ FİYATI -4', 2, 4, 0.0),
+        ]
+
+        for tanimi, alis_satis, fiyat_no, fiyati in fiyat_kayitlari:
+            cur.execute("SELECT GEN_ID(STOK_FIYAT_GEN, 1) FROM RDB$DATABASE")
+            fiyat_blkodu = cur.fetchone()[0]
+            cur.execute("""
+                INSERT INTO STOK_FIYAT (
+                    BLKODU, BLSTKODU, TANIMI, HESAP, FIYATI,
+                    ALIS_SATIS, KPB_MI, FIYAT_NO, FIYAT_DEG_TARIHI
+                ) VALUES (?, ?, ?, 'TL', ?, ?, 1, ?, ?)
+            """, (fiyat_blkodu, stok_blkodu, tanimi, fiyati, alis_satis, fiyat_no, now))
+
+        con.commit()
+        return {
+            'success': True,
+            'stok_kodu': stok_kodu,
+            'stok_adi': stok_adi,
+            'blkodu': stok_blkodu,
+            'grubu': grup_adi,
+            'birimi': matched_unit,
+            'kdv_orani': kdv_orani,
+            'satis_fiyati_1': satis_fiyati_1,
+            'alis_fiyati_1': alis_fiyati_1
+        }
+
+    except Exception as e:
+        con.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        cur.close()
+        con.close()
 
 
 def get_stocks():
@@ -133,112 +285,15 @@ def get_stocks():
     return stocks
 
 
-def add_stock(stok_adi, grubu, birimi, kdv_orani, satis_fiyati_1, alis_fiyati_1, aciklama=''):
-    """Veritabanına yeni stok kartı ekle"""
+def get_existing_groups():
+    """Mevcut stok gruplarını getir"""
     con = get_db()
     cur = con.cursor()
-    now = datetime.now()
-
-    try:
-        # 1. Grup kontrol / oluştur
-        cur.execute("SELECT BLKODU FROM GRUP WHERE GRUP_ADI = ? AND MODUL = 'STOK'", (grubu,))
-        row = cur.fetchone()
-        if not row:
-            cur.execute("SELECT GEN_ID(GRUP_GEN, 1) FROM RDB$DATABASE")
-            grup_blkodu = cur.fetchone()[0]
-            cur.execute("""
-                INSERT INTO GRUP (BLKODU, GRUP_ADI, MODUL, WEBDE_GORUNSUN)
-                VALUES (?, ?, 'STOK', 1)
-            """, (grup_blkodu, grubu))
-
-        # 2. Stok ID al
-        cur.execute("SELECT GEN_ID(STOK_GEN, 1) FROM RDB$DATABASE")
-        stok_blkodu = cur.fetchone()[0]
-
-        # 3. Stok kodu sayacı
-        cur.execute("SELECT GEN_ID(SAYAC_ST_12_GEN, 1) FROM RDB$DATABASE")
-        sayac = cur.fetchone()[0]
-        stok_kodu = f"ST{sayac:05d}"
-
-        # 4. STOK INSERT
-        cur.execute("""
-            INSERT INTO STOK (
-                BLKODU, STOKKODU, STOK_ADI, BIRIMI, KDV_ORANI, KDV_ORANI_ALIS,
-                KDV_ORANI_SATIS_TPT, KAYIT_TARIHI, GRUBU, KAYDEDEN, AKTIF,
-                DEPO_ADI, SIPARIS_EKLE, SIPARIS_MINIMUM_MIKTAR, SIPARIS_EKLENECEK_MIKTAR,
-                DOVIZ_KULLAN, BAKIYE_UYARI, ANA_STOK, WEBDE_GORUNSUN, SIPARIS_DURUMU,
-                ALIS_ISKONTO_KULLAN, SATIS_ISKONTO_KULLAN, STISK1_KULLAN, STISK2_KULLAN,
-                STISK3_KULLAN, ALISISK1_KULLAN, ALISISK2_KULLAN, ALISISK3_KULLAN,
-                SERINO_KULLAN, KDV_85_KULLAN, SERILOT_MALIYET_ESLESTIR, LOT_PARCALANABILIR,
-                ENTRYKDVDEPARTMAN, MUH_ALIS, MUH_SATIS_YI, MUH_SATIS_YD,
-                MUH_IADE_YI, MUH_IADE_YD, MUH_MALIYET_HESABI, BIRIMLER, BARKOD_TIPI,
-                ACIKLAMA1
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?
-            )
-        """, (
-            stok_blkodu, stok_kodu, stok_adi, birimi, kdv_orani, kdv_orani,
-            kdv_orani, now, grubu, 'AI_ASSISTANT', 1,
-            '1', 1, 0, 0,
-            0, 0, 0, 0, 1,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 1, 0,
-            1, '153', '600', '601',
-            '610', '610', '621', 'V01', 1,
-            aciklama
-        ))
-
-        # 5. Fiyat kayıtları (4 alış + 4 satış)
-        fiyat_kayitlari = [
-            ('ALIŞ FİYATI -1',  1, 1, alis_fiyati_1),
-            ('ALIŞ FİYATI -2',  1, 2, 0.0),
-            ('ALIŞ FİYATI -3',  1, 3, 0.0),
-            ('ALIŞ FİYATI -4',  1, 4, 0.0),
-            ('SATIŞ FİYATI -1', 2, 1, satis_fiyati_1),
-            ('SATIŞ FİYATI -2', 2, 2, 0.0),
-            ('SATIŞ FİYATI -3', 2, 3, 0.0),
-            ('SATIŞ FİYATI -4', 2, 4, 0.0),
-        ]
-
-        for tanimi, alis_satis, fiyat_no, fiyati in fiyat_kayitlari:
-            cur.execute("SELECT GEN_ID(STOK_FIYAT_GEN, 1) FROM RDB$DATABASE")
-            fiyat_blkodu = cur.fetchone()[0]
-            cur.execute("""
-                INSERT INTO STOK_FIYAT (
-                    BLKODU, BLSTKODU, TANIMI, HESAP, FIYATI,
-                    ALIS_SATIS, KPB_MI, FIYAT_NO, FIYAT_DEG_TARIHI
-                ) VALUES (?, ?, ?, 'TL', ?, ?, 1, ?, ?)
-            """, (fiyat_blkodu, stok_blkodu, tanimi, fiyati, alis_satis, fiyat_no, now))
-
-        con.commit()
-        return {
-            'success': True,
-            'stok_kodu': stok_kodu,
-            'stok_adi': stok_adi,
-            'blkodu': stok_blkodu,
-            'grubu': grubu,
-            'birimi': birimi,
-            'kdv_orani': kdv_orani,
-            'satis_fiyati_1': satis_fiyati_1,
-            'alis_fiyati_1': alis_fiyati_1
-        }
-
-    except Exception as e:
-        con.rollback()
-        return {'success': False, 'error': str(e)}
-    finally:
-        cur.close()
-        con.close()
+    cur.execute("SELECT GRUP_ADI FROM GRUP WHERE MODUL = 'STOK' ORDER BY GRUP_ADI")
+    groups = [row[0].strip() for row in cur.fetchall()]
+    cur.close()
+    con.close()
+    return groups
 
 
 @app.route('/')
@@ -255,11 +310,14 @@ def chat():
         return jsonify({'error': 'Mesaj boş'}), 400
 
     try:
+        # Dinamik System Prompt oluştur
+        system_prompt = build_system_prompt()
+
         # Groq API çağrısı
         response = groq_client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
             temperature=0.1,
@@ -270,7 +328,6 @@ def chat():
         tokens_used = response.usage.total_tokens if response.usage else 0
 
         # JSON parse
-        # Bazen model ```json ... ``` ile sarıyor, temizle
         json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
         if json_match:
             ai_json = json.loads(json_match.group())
@@ -372,7 +429,7 @@ def list_groups():
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("  Wolvox AI Stok Yönetimi")
+    print("  Wolvox AI Akıllı Stok Yönetimi Başlatıldı")
     print("  http://localhost:5000")
     print("=" * 50)
     app.run(debug=True, port=5000)
