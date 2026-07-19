@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolvox AI — Akıllı Stok Yönetimi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://www.akinsoft.com.tr/iletisim/ads2/google/0726-onmgoogle/1?utm_source=google&utm_medium=cpc&utm_campaign=23993488793&utm_term=ak%C4%B1nsoft%20muhasebe%20program%C4%B1&utm_content=198485058376&gad_source=1&gad_campaignid=23993488793&gbraid=0AAAAADz2My0IvlXgxd6CZ6qoIZRRs_mcr&gclid=EAIaIQobChMInPn_2-3elQMVfp6DBx0rEhUMEAAYAiAAEgKIp_D_BwE">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-primary: #3b82f6;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --chat-user-bg: #2563eb;
+            --chat-ai-bg: rgba(31, 41, 55, 0.8);
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: var(--glass-blur);
+            z-index: 10;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-success));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #fff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- CHAT SECTION --- */
+        .chat-section {
+            border-right: 1px solid var(--border-color);
+            background: rgba(17, 24, 39, 0.4);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 1rem;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background-color: var(--chat-user-bg);
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            background-color: var(--chat-ai-bg);
+            color: var(--text-main);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .preview-title {
+            font-weight: 600;
+            color: var(--accent-warning);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .preview-label {
+            color: var(--text-muted);
+        }
+
+        .preview-val {
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-success);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: #059669;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .chat-input-area {
+            padding: 1.2rem;
+            border-top: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.9);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .send-btn {
+            background: var(--accent-primary);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover {
+            background: #1d4ed8;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+        }
+
+        /* --- DASHBOARD SECTION --- */
+        .dashboard-section {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .dashboard-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .table-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            flex: 1;
+            overflow-y: auto;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px 18px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-info {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-success);
+        }
+
+        .price-tag {
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .suggestion-chips {
+            display: flex;
+            gap: 8px;
+            padding: 0.8rem 1.2rem;
+            overflow-x: auto;
+            background: rgba(11, 15, 25, 0.4);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .suggestion-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-chip:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: var(--accent-primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-area">
+            <div class="logo-icon">W</div>
+            <h1>Wolvox AI — Akıllı Stok Yönetimi</h1>
+        </div>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span>Firebird Bağlantısı Aktif</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- CHAT SECTION -->
+        <div class="chat-section">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai">
+                    Merhaba! Ben Wolvox AI stok yardımcın. Groq Llama 3.1 ile güçlendirildim.<br><br>
+                    Bana doğal dilde stok ekleme talimatı verebilirsin. Örneğin:<br>
+                    *<i>"Kırmızı Mercimek ekle, bakliyat grubunda olsun, alış fiyatı 30 TL, satış fiyatı 48 TL, KDV %10,
+                        birimi KG"</i>*
+                </div>
+            </div>
+
+            <div class="suggestion-chips">
+                <div class="suggestion-chip"
+                    onclick="useSuggestion('Pirinc ekle bakliyat grubunda alis 40 satis 60 KDV %10 birimi KG')">🌾
+                    Pirinç Ekle</div>
+                <div class="suggestion-chip"
+                    onclick="useSuggestion('Camasir Suyu ekle temizlik grubunda satis 25 TL KDV %20')">🧼 Çamaşır Suyu
+                    Ekle</div>
+                <div class="suggestion-chip" onclick="useSuggestion('stoklari listele')">📦 Stokları Listele</div>
+            </div>
+
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Doğal dilde bir talimat yazın..."
+                    onkeydown="if(event.key === 'Enter') sendMessage()">
+                <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div class="dashboard-section">
+            <div class="dashboard-header">
+                <div class="dashboard-title">Wolvox Canlı Stok Kartları</div>
+                <button class="refresh-btn" onclick="loadStocks()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Yenile
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Stok Adı</th>
+                            <th>Grup</th>
+                            <th>Birim</th>
+                            <th>Alış Fiyatı</th>
+                            <th>Satış Fiyatı</th>
+                            <th>KDV</th>
+                            <th>Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted);">Stoklar yükleniyor...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPendingData = null;
+
+        function appendMessage(sender, text, isHtml = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            if (isHtml) {
+                msgDiv.innerHTML = text;
+            } else {
+                msgDiv.innerText = text;
+            }
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msgDiv;
+        }
+
+        function useSuggestion(val) {
+            document.getElementById('chatInput').value = val;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            appendMessage('user', text);
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const result = await response.json();
+
+                if (result.type === 'preview') {
+                    currentPendingData = result.data;
+                    const previewHtml = `
+                        <div>
+                            ${result.message}
+                            <div class="preview-card">
+                                <div class="preview-title">Stok Önizleme</div>
+                                <div class="preview-grid">
+                                    <span class="preview-label">Adı:</span><span class="preview-val">${result.data.stok_adi}</span>
+                                    <span class="preview-label">Grup:</span><span class="preview-val">${result.data.grubu}</span>
+                                    <span class="preview-label">Birim:</span><span class="preview-val">${result.data.birimi}</span>
+                                    <span class="preview-label">KDV:</span><span class="preview-val">%${result.data.kdv_orani}</span>
+                                    <span class="preview-label">Alış:</span><span class="preview-val">${result.data.alis_fiyati_1} TL</span>
+                                    <span class="preview-label">Satış:</span><span class="preview-val">${result.data.satis_fiyati_1} TL</span>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-primary" onclick="confirmAdd()">Onayla ve Kaydet</button>
+                                    <button class="btn btn-secondary" onclick="rejectAdd()">İptal Et</button>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 6px;">[Groq Token: ${result.tokens || 0}]</span>
+                        </div>
+                    `;
+                    appendMessage('ai', previewHtml, true);
+                } else if (result.type === 'list') {
+                    updateStockTable(result.data);
+                    appendMessage('ai', result.message);
+                } else {
+                    appendMessage('ai', result.message);
+                }
+
+            } catch (err) {
+                appendMessage('ai', 'Hata oluştu: ' + err.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+            }
+        }
+
+        async function confirmAdd() {
+            if (!currentPendingData) return;
+
+            // Onay butonlarını devre dışı bırak
+            const btns = document.querySelectorAll('.btn-group button');
+            btns.forEach(btn => btn.disabled = true);
+
+            try {
+                const response = await fetch('/api/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentPendingData)
+                });
+                const result = await response.json();
+
+                if (result.type === 'success') {
+                    appendMessage('ai', result.message, true);
+                    loadStocks();
+                } else {
+                    appendMessage('ai', result.message);
+                }
+            } catch (err) {
+                appendMessage('ai', 'Kayıt sırasında hata oluştu: ' + err.message);
+            } finally {
+                currentPendingData = null;
+            }
+        }
+
+        function rejectAdd() {
+            appendMessage('ai', 'İşlem iptal edildi.');
+            currentPendingData = null;
+        }
+
+        async function loadStocks() {
+            const tbody = document.getElementById('stockTableBody');
+            try {
+                const response = await fetch('/api/stocks');
+                const data = await response.json();
+                updateStockTable(data.stocks);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">Hata: ${err.message}</td></tr>`;
+            }
+        }
+
+        function updateStockTable(stocks) {
+            const tbody = document.getElementById('stockTableBody');
+            if (!stocks || stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Hiç stok bulunamadı.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = stocks.map(stock => {
+                const alisFiyat = stock.fiyatlar.find(f => f.alis_satis === 1 && f.fiyat_no === 1);
+                const satisFiyat = stock.fiyatlar.find(f => f.alis_satis === 2 && f.fiyat_no === 1);
+
+                const alisVal = alisFiyat ? `${alisFiyat.fiyati.toFixed(2)} TL` : '0.00 TL';
+                const satisVal = satisFiyat ? `${satisFiyat.fiyati.toFixed(2)} TL` : '0.00 TL';
+
+                return `
+                    <tr>
+                        <td><span class="badge badge-info">${stock.stokkodu}</span></td>
+                        <td><strong>${stock.stok_adi}</strong></td>
+                        <td>${stock.grubu}</td>
+                        <td>${stock.birimi}</td>
+                        <td class="price-tag">${alisVal}</td>
+                        <td class="price-tag">${satisVal}</td>
+                        <td>%${stock.kdv_orani}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">${stock.kayit_tarihi}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Sayfa açıldığında stokları yükle
+        window.onload = loadStocks;
+    </script>
+</body>
+
+</html>

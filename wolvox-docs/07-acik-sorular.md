@@ -1,0 +1,567 @@
+# Wolvox Firebird Veritabanı — Açık Sorular ve Doğrulanması Gerekenler
+
+---
+**Analiz Tarihi:** 2026-07-19 15:50:10  
+**Firebird Sürümü:** 2.5.6 (WI-V6.3.6.27020 Firebird 2.5)  
+**Veritabanı:** DEMOWOLVOX (Wolvox 9)  
+**Veritabanı Yolu:** `C:\AKINSOFT\Wolvox9\Database_FB\DEMOWOLVOX\2026\WOLVOX.fdb`  
+**Charset:** WIN1254  
+**Not:** Bu dokümantasyon salt-okunur analiz ile oluşturulmuştur. Wolvox güncellemelerinde şema değişebilir.
+
+---
+
+## Genel Açık Sorular
+
+### 1. Primary Key Tanımlı Olmayan Tablolar (34 adet)
+
+Aşağıdaki tablolarda tanımlı PK bulunamadı. Bu, Wolvox'un PK yerine unique index veya uygulama katmanı mantığı kullanıyor olabileceğini gösterir:
+
+- `CARI_YASL_DONEM`
+- `PTMP_BONUS_BAKIYE`
+- `PTMP_CARIKPB_BAKIYE`
+- `PTMP_CARISTOK_ENSONSATISFYT`
+- `PTMP_CARI_BAKIYE`
+- `PTMP_CARI_BAKIYE_VALOR`
+- `PTMP_CARI_KART_ANALIZI`
+- `PTMP_CARI_MANYASL`
+- `PTMP_CARI_MANYASL_BRC`
+- `PTMP_CARI_OTOYASL_CARI`
+- `PTMP_CARI_OTOYASL_HRK`
+- `PTMP_CARI_ZINCIR_TAHSILAT`
+- `PTMP_CRDNM_BAKIYE`
+- `PTMP_DEPO_ENVANTERI`
+- `PTMP_DEPO_LOKASYON`
+- `PTMP_DEPO_SIPARIS_LISTESI`
+- `PTMP_FATKZ_MLYTCARI`
+- `PTMP_FATURA_STTAHS_TURU`
+- `PTMP_HIZMET_RAPORU`
+- `PTMP_ISTATISTIKAYARLA`
+- `PTMP_OTEL_REZERVASYON_LISTE`
+- `PTMP_SERINORAPORU`
+- `PTMP_STOKHR_SATIRBAKIYE`
+- `PTMP_STOK_DNMRAP`
+- `PTMP_STOK_ENVANTER`
+- `PTMP_STOK_FIFO_KALANLAR`
+- `PTMP_STOK_ISLEM_GORMEYEN`
+- `PTMP_STOK_KZB`
+- `PTMP_STOK_KZN`
+- `PTMP_STOK_KZ_OZEL`
+- `PTMP_STOK_MKBAKIYE`
+- `PTMP_STOK_YETERLILIK`
+- `PTMP_TAKSIT_BAKIYE`
+- `PTMP_TUPSUGUNCEL`
+
+### 2. Az Sayıda Foreign Key (0 adet)
+
+421 tabloluk bir veritabanında sadece 0 FK ilişkisi bulunması, Wolvox'un tablo ilişkilerini büyük ölçüde **uygulama katmanında** (Delphi/C++ kodu veya trigger'larla) yönettiğini güçlü şekilde gösterir.
+
+**Risk:** Harici bir uygulamadan yazma yapılırken, FK constraint'leri eksik olduğundan, yanlış veri girişini veritabanı engellemeyecektir. Uygulama katmanında ek doğrulama yapılmalıdır.
+
+### 3. Sınıflandırılamayan Tablolar (235 adet)
+
+Aşağıdaki tabloların iş alanı, isimlerinden anlaşılamadı. Manuel inceleme gereklidir:
+
+- `ADISYONBUTON` (22 kolon)
+- `ADISYONFIS` (104 kolon)
+- `ADISYONHAREKET` (61 kolon)
+- `ADISYONHAREKETPRINT` (11 kolon)
+- `ADISYONMUTFAKPRINT` (6 kolon)
+- `ADISYONODEME` (14 kolon)
+- `ADISYONODEMEHR` (5 kolon)
+- `ADISYON_BOLUM_ESLESME` (5 kolon)
+- `ADISYON_FISTIPI` (14 kolon)
+- `ADISYON_MUTFAK` (9 kolon)
+- `ADISYON_MUTFAK_MESAJ` (8 kolon)
+- `ADISYON_REZERVASYON` (24 kolon)
+- `ADISYON_REZERVASYON_MASA` (4 kolon)
+- `ANKET` (13 kolon)
+- `ANKET_DT` (8 kolon)
+- `ANKET_DTCVP` (7 kolon)
+- `ANKET_SONUC` (15 kolon)
+- `BASIT_URETIM` (43 kolon)
+- `BASIT_URETIMHR` (27 kolon)
+- `BASIT_URETIM_PRC` (19 kolon)
+- `BASIT_URETIM_PRC_HEDEF` (19 kolon)
+- `BASIT_URETIM_PRC_KAYNAK` (19 kolon)
+- `BEDEN_TANIM` (4 kolon)
+- `BEKLEME_LISTESI` (22 kolon)
+- `BELGEKILIT` (5 kolon)
+- `BELGELOG` (11 kolon)
+- `BELGE_ONAY_HRK` (13 kolon)
+- `BELGE_ONAY_TANIM` (9 kolon)
+- `BELGE_ONAY_TANIM_DETAY` (14 kolon)
+- `BONUSHR` (18 kolon)
+- `BONUS_TANIM` (14 kolon)
+- `BONUS_TANIM_KADEME` (5 kolon)
+- `CALLERID_LISTE` (15 kolon)
+- `CRM_DURUM_TANIM` (6 kolon)
+- `DEGISIM_LOG` (8 kolon)
+- `DOKUMAN_KAYIT` (20 kolon)
+- `DOVIZ` (17 kolon)
+- `DOVIZ_BUROSU` (21 kolon)
+- `DOVIZ_HAREKET` (12 kolon)
+- `EADISYONHR` (22 kolon)
+- `ENBOY_FORMUL_DETAY` (5 kolon)
+- `ENBOY_FORMUL_TANIM` (5 kolon)
+- `EVENTS` (35 kolon)
+- `FINANSAL_ANALIZ` (14 kolon)
+- `FIN_EMIRLER` (6 kolon)
+- `FRANCHISESYNC` (4 kolon)
+- `GENELKAPSAM` (12 kolon)
+- `GEN_IDT` (4 kolon)
+- `GUNSONUHR` (11 kolon)
+- `GUN_SONU` (10 kolon)
+- `HEDIYE_KART` (14 kolon)
+- `HHOURS_FISKOSUL` (13 kolon)
+- `HHOURS_HAREKET` (9 kolon)
+- `HHOURS_INDIRIM` (12 kolon)
+- `HHOURS_KAMPKOSUL` (11 kolon)
+- `HHOURS_TANIM` (46 kolon)
+- `HIZMET` (25 kolon)
+- `HRK_ACIKLAMA` (6 kolon)
+- `ITHALAT` (29 kolon)
+- `ITHALAT_GIRIS` (11 kolon)
+- `ITHALAT_GIRIS_MALIYET` (9 kolon)
+- `ITHALAT_GIRIS_SERINO` (15 kolon)
+- `KAMPANYA` (21 kolon)
+- `KEYWORDS_KAYIT` (4 kolon)
+- `KEYWORDS_TANIM` (3 kolon)
+- `KREDILIKART` (49 kolon)
+- `KREDILIKARTHR` (12 kolon)
+- `KREDILIKARTKONTOR` (7 kolon)
+- `KREDILIKART_ADETLIHR` (8 kolon)
+- `KREDI_KARTI` (20 kolon)
+- `KURYEHAKEDIS` (27 kolon)
+- `KURYEPARATESLIM` (5 kolon)
+- `LANG_CUSTOMIZE` (3 kolon)
+- `MAIL_SMS_LOG` (11 kolon)
+- `MAIL_SMS_SABLON` (15 kolon)
+- `MARKA` (2 kolon)
+- `MASA` (18 kolon)
+- `MASA_SURE_TARIFE` (69 kolon)
+- `MMERKEZI_HR` (8 kolon)
+- `MM_DAGITIM_GIDER` (18 kolon)
+- `MM_DAGITIM_URETIM` (25 kolon)
+- `MM_DAGITIM_YEVMIYE` (10 kolon)
+- `MM_DONEM` (10 kolon)
+- `MM_GIDER` (5 kolon)
+- `MM_GIDER_DETAY` (8 kolon)
+- `MM_ILKMADDE` (14 kolon)
+- `MM_ILKMADDE_DETAY` (26 kolon)
+- `MM_ILKMADDE_SERINO` (12 kolon)
+- `MODEL` (3 kolon)
+- `MRP_DURUS_TANIMLARI` (2 kolon)
+- `MRP_EMIRLERI` (37 kolon)
+- `MRP_EMIRLERI_DETAY` (53 kolon)
+- `MRP_EMIRLERI_DETAY_ESLESTIRME` (5 kolon)
+- `MRP_EMIRLERI_EKMALIYET` (4 kolon)
+- `MRP_EMIRLERI_FASON` (35 kolon)
+- `MRP_EMIRLERI_FASON_GELEN` (11 kolon)
+- `MRP_EMIRLERI_FASON_GIDEN` (9 kolon)
+- `MRP_EMIRLERI_GANTT` (25 kolon)
+- `MRP_EMIRLERI_GANTT_DETAY` (19 kolon)
+- `MRP_EMIRLERI_GANTT_KZAMAN` (6 kolon)
+- `MRP_EMIRLERI_HURDA` (9 kolon)
+- `MRP_EMIRLERI_HURDA_SONUC` (14 kolon)
+- `MRP_EMIRLERI_IS_EMRI` (10 kolon)
+- `MRP_EMIRLERI_IS_EMRI_DETAY` (37 kolon)
+- `MRP_EMIRLERI_KALITE` (16 kolon)
+- `MRP_EMIRLERI_KALITE_SONUCLAR` (8 kolon)
+- `MRP_EMIRLERI_MAKINE` (17 kolon)
+- `MRP_EMIRLERI_MALIYET_TEMP` (13 kolon)
+- `MRP_EMIRLERI_OPERASYON` (16 kolon)
+- `MRP_EMIRLERI_VERSIYON` (10 kolon)
+- `MRP_HAMMADDE_GIRIS` (16 kolon)
+- `MRP_IS_MERKEZI` (4 kolon)
+- `MRP_KAYIP_ZAMAN` (6 kolon)
+- `MRP_MAKINE` (11 kolon)
+- `MRP_MAKINE_BAKIM_HRK` (8 kolon)
+- `MRP_MAKINE_BAKIM_TANIM` (8 kolon)
+- `MRP_MESAI_TAKVIMI` (4 kolon)
+- `MRP_MOLA` (4 kolon)
+- `MRP_OPERASYON` (5 kolon)
+- `NOT_TANIMLARI` (3 kolon)
+- `OFFLINE_UPDATE_LOG` (6 kolon)
+- `OKC_ANDROID_SATIS` (20 kolon)
+- `ONODEME_DETAY` (6 kolon)
+- `ONODEME_SATIS` (14 kolon)
+- `ONODEME_TANIM` (8 kolon)
+- `OTEL_ACENTA` (54 kolon)
+- `OTEL_ACENTA_KONTENJAN` (10 kolon)
+- `OTEL_ACENTA_STOPSALE` (7 kolon)
+- `OTEL_ADISYONHR` (3 kolon)
+- `OTEL_AKBS` (22 kolon)
+- `OTEL_AKSIYON` (32 kolon)
+- `OTEL_BLOKAJ` (12 kolon)
+- `OTEL_BLOKAJHR` (14 kolon)
+- `OTEL_BLOKAJ_ODA` (4 kolon)
+- `OTEL_DEPHABER_HR` (9 kolon)
+- `OTEL_DEPHABER_TANIM` (3 kolon)
+- `OTEL_DONEM` (56 kolon)
+- `OTEL_DONEM_EXTRA_INDIRIM` (4 kolon)
+- `OTEL_DONEM_PAN_FARK` (7 kolon)
+- `OTEL_DONEM_UCRET` (4 kolon)
+- `OTEL_DOVIZ_HAREKET` (12 kolon)
+- `OTEL_ENVANTER` (16 kolon)
+- `OTEL_ENVANTER_HAREKET` (15 kolon)
+- `OTEL_ETKINLIK` (31 kolon)
+- `OTEL_EXTRA_INDIRIM` (6 kolon)
+- `OTEL_FOLIOHR` (35 kolon)
+- `OTEL_FOLIO_FIS` (5 kolon)
+- `OTEL_GENEL` (17 kolon)
+- `OTEL_GOREVHR` (19 kolon)
+- `OTEL_GOREVLER` (7 kolon)
+- `OTEL_GOREV_ATAMA` (5 kolon)
+- `OTEL_GOREV_SABLON` (3 kolon)
+- `OTEL_HARCAMA` (6 kolon)
+- `OTEL_HARCAMAHR` (4 kolon)
+- `OTEL_KAPIKILIT` (5 kolon)
+- `OTEL_KAYIP_ESYA` (11 kolon)
+- `OTEL_KIMBIL` (5 kolon)
+- `OTEL_KIMBILHR` (3 kolon)
+- `OTEL_KONUMLANDIRICI` (10 kolon)
+- `OTEL_LOG` (13 kolon)
+- `OTEL_MESAJ` (10 kolon)
+- `OTEL_ODA` (19 kolon)
+- `OTEL_ODAUCRETHR` (29 kolon)
+- `OTEL_ONLINE_RZV` (6 kolon)
+- `OTEL_PANSIYON_KONSEPT` (25 kolon)
+- `OTEL_REZERVASYON` (79 kolon)
+- `OTEL_REZERVASYON_EXTRAINDIRIM` (3 kolon)
+- `OTEL_REZERVASYON_ODA` (3 kolon)
+- `OTEL_SALON` (27 kolon)
+- `OTEL_SALONHR` (10 kolon)
+- `OTEL_SALON_BAKIM` (5 kolon)
+- `OTEL_SALON_DUZEN` (9 kolon)
+- `OTEL_SALON_ILETISIM` (4 kolon)
+- `OTEL_SANTRAL` (17 kolon)
+- `OTEL_SERVIS` (11 kolon)
+- `OTEL_SIKAYET` (15 kolon)
+- `OTEL_TARIFE` (27 kolon)
+- `OTEL_UYANDIRMA` (8 kolon)
+- `OTEL_VARSAYILAN` (8 kolon)
+- `OTEL_YEMEK_HIZMET` (7 kolon)
+- `OZELALANTANIM` (10 kolon)
+- `PARA_SAYMA` (4 kolon)
+- `PROMOSYON_SATIS` (7 kolon)
+- `PROMOSYON_SATIS_DT` (5 kolon)
+- `PROMOSYON_TANIM` (45 kolon)
+- `PROMOSYON_TANIM_SATIS_SART` (10 kolon)
+- `PTMP_BONUS_BAKIYE` (6 kolon)
+- `PTMP_CRDNM_BAKIYE` (14 kolon)
+- `PTMP_OTEL_REZERVASYON_LISTE` (32 kolon)
+- `PTMP_TAKSIT_BAKIYE` (12 kolon)
+- `PTMP_TUPSUGUNCEL` (5 kolon)
+- `RENK_TANIM` (3 kolon)
+- `RESOURCES` (5 kolon)
+- `ROTA_HAREKET` (12 kolon)
+- `ROTA_PLANLAMA` (18 kolon)
+- `SARFMLZM_FISI` (22 kolon)
+- `SARFMLZM_FISI_DETAY` (30 kolon)
+- `SATINALMA_ENTEGRASYON` (7 kolon)
+- `SATIR_IPTAL` (11 kolon)
+- `SERILOT_NUMARA_TANIM` (3 kolon)
+- `SERI_NO` (41 kolon)
+- `SERVIS` (126 kolon)
+- `SERVISHR` (83 kolon)
+- `SERVIS_ARAC` (20 kolon)
+- `SERVIS_DISMODUL` (7 kolon)
+- `SERVIS_DISSRV` (19 kolon)
+- `SERVIS_FISDURUMU` (10 kolon)
+- `SERVIS_FIS_ISLEMLERI` (12 kolon)
+- `SERVIS_ISLEM` (5 kolon)
+- `SERVIS_KUR` (5 kolon)
+- `SERVIS_SERINO` (12 kolon)
+- `SERVIS_SOZLESME` (22 kolon)
+- `SEVKIYAT` (20 kolon)
+- `SEVKIYAT_DETAY` (18 kolon)
+- `SEVKIYAT_SAYIM` (14 kolon)
+- `TAKSITHR` (14 kolon)
+- `TASIYICI` (6 kolon)
+- `TEKLIF` (122 kolon)
+- `TEKLIFHR` (102 kolon)
+- `TEKLIF_BILGI` (3 kolon)
+- `TEKLIF_DURUM_TANIM` (17 kolon)
+- `TEKLIF_KUR` (5 kolon)
+- `TEKLIF_ODEME` (7 kolon)
+- `TEKNIKDESTEK` (33 kolon)
+- `TSMLOG` (10 kolon)
+- `TUPSU` (18 kolon)
+- `TUPSU_DEGISIM` (11 kolon)
+- `TUPSU_DT` (14 kolon)
+- `URETIM_SERILOT` (9 kolon)
+- `UYARI_HATIRLATMA` (8 kolon)
+- `VADEORANLARI` (6 kolon)
+- `VARDIYAHR` (8 kolon)
+- `VARYANT` (9 kolon)
+- `WEBENT_LOG_TABLE` (7 kolon)
+- `ZORUNLU_ALANLAR` (5 kolon)
+
+### 5. Kaynak Kodu Okunamayan Stored Procedure'ler (73 adet)
+
+- `ADISYON_KF`
+- `ASORTI_MIK_HES`
+- `BAKIYEDEGERBUL`
+- `BONUS_BAKIYE`
+- `CARIKPB_BAKIYE`
+- `CARISTOK_ENSONSATISFYT`
+- `CARI_BAKIYE`
+- `CARI_BAKIYE_VALOR`
+- `CARI_KART_ANALIZI`
+- `CARI_MAN_YASLANDIRMA`
+- `CARI_OTO_YASLANDIRMA`
+- `CARI_ZINCIR_TAHSILAT`
+- `CRDNM_BAKIYE`
+- `CRDNM_BAKIYE_TAKSIT`
+- `CSCARIBUL`
+- `DEPO_ENVANTERI`
+- `DEPO_LOKASYON_OLUSTUR`
+- `DEPO_SIPARIS_LISTESI`
+- `FATKZ_MLYTCARI`
+- `FATURA_KF`
+- `FATURA_STOKTAHS_TURU`
+- `FNAN_TAHMINI`
+- `HIZMET_RAPORU`
+- `ISTATISTIKAYARLA`
+- `ISTATISTIKAYARLA_2`
+- `KURKONTROL`
+- `MRP_EMIRLERI_FASON_KARS`
+- `MRP_MAKINE_CALISMA`
+- `MRP_OPERASYON_KARS`
+- `MRP_URETILEN_MIKTAR`
+- `ONODEMEKONTROL`
+- `OTEL_ENVANTER_LISTESI`
+- `OTEL_INTLOGUCRET`
+- `OTEL_KURKONTROL`
+- `OTEL_ODA_BILGI`
+- `OTEL_ODA_LISTESI`
+- `OTEL_ODA_LISTESI_2`
+- `OTEL_REZERVASYON_BILGI`
+- `OTEL_REZERVASYON_LISTE`
+- `OTEL_REZERVASYON_LISTE_2`
+- `P_SATIS_FIYATI_BUL`
+- `P_SATIS_FIYATLARI`
+- `P_SATIS_FIYATLARI_2`
+- `P_SATIS_FIYATLARI_LISTE`
+- `ROTA_RAPORU`
+- `SERILOT_ENVBAKIYE`
+- `SERILOT_MALIYET`
+- `SERINOBAKIYEBUL`
+- `SERINORAPORU`
+- `SIPARIS_URETIM_BILGI`
+- `SP_GEN_ID`
+- `STOKHAREKETTOPLA`
+- `STOKHR_SATIRBAKIYE`
+- `STOKKZ_LIFOFIFO`
+- `STOK_ALIS_FIYATI_DEGISTIR`
+- `STOK_BARKOD_BUL`
+- `STOK_BARKOD_BUL_TEK`
+- `STOK_BARKOD_BUL_TUMU`
+- `STOK_DNMRAP`
+- `STOK_ENVANTER`
+- `STOK_ENVANTER_DEPO`
+- `STOK_FIFO_KALANLAR`
+- `STOK_FIYATLARI_BUL`
+- `STOK_FIYATLARI_BUL2`
+- `STOK_ISLEM_GORMEYEN`
+- `STOK_KZB`
+- `STOK_KZN`
+- `STOK_KZ_OZEL`
+- `STOK_RAPOR_FIYAT`
+- `STOK_YETERLILIK`
+- `TAKSIT_BAKIYE`
+- `TUPSUGUNCEL`
+- `VALOR_HESAPLA`
+
+### 6. Verisi Okunamayan Referans Tabloları (182 adet)
+
+- `ADISYONMUTFAKPRINT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ADISYONMUTFAKPRINT', -551, 335544352)
+- `ADISYONODEMEHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ADISYONODEMEHR', -551, 335544352)
+- `ADISYON_BOLUM_ESLESME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ADISYON_BOLUM_ESLESME', -551, 335544352)
+- `ADISYON_FISTIPI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ADISYON_FISTIPI', -551, 335544352)
+- `ADISYON_MUTFAK_MESAJ`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ADISYON_MUTFAK_MESAJ', -551, 335544352)
+- `ADISYON_REZERVASYON_MASA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ADISYON_REZERVASYON_MASA', -551, 335544352)
+- `ANKET_DT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ANKET_DT', -551, 335544352)
+- `ANKET_DTCVP`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ANKET_DTCVP', -551, 335544352)
+- `BANKAHR_GMDETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BANKAHR_GMDETAY', -551, 335544352)
+- `BANKA_KREDI_KUL_DETAY_ODEME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BANKA_KREDI_KUL_DETAY_ODEME', -551, 335544352)
+- `BANKA_POS_DETAY_VADE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BANKA_POS_DETAY_VADE', -551, 335544352)
+- `BANKA_TATIL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BANKA_TATIL', -551, 335544352)
+- `BANKA_TATIL_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BANKA_TATIL_DETAY', -551, 335544352)
+- `BARKOD_TIPI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BARKOD_TIPI', -551, 335544352)
+- `BEDEN_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BEDEN_TANIM', -551, 335544352)
+- `BELGEKILIT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BELGEKILIT', -551, 335544352)
+- `BONUS_TANIM_KADEME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE BONUS_TANIM_KADEME', -551, 335544352)
+- `CARI_DOVIZ`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CARI_DOVIZ', -551, 335544352)
+- `CARI_EK_KESINTILER`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CARI_EK_KESINTILER', -551, 335544352)
+- `CARI_MANUEL_YASLANDIRMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CARI_MANUEL_YASLANDIRMA', -551, 335544352)
+- `CARI_SERVIS`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CARI_SERVIS', -551, 335544352)
+- `CARI_ZINCIR_PAZARLAMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CARI_ZINCIR_PAZARLAMA', -551, 335544352)
+- `CRM_CARI_LISTE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CRM_CARI_LISTE', -551, 335544352)
+- `CRM_CARI_LISTE_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CRM_CARI_LISTE_DETAY', -551, 335544352)
+- `CRM_DURUM_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE CRM_DURUM_TANIM', -551, 335544352)
+- `DEGISIM_LOG`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE DEGISIM_LOG', -551, 335544352)
+- `DOVIZ`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE DOVIZ', -551, 335544352)
+- `DOVIZ_BUROSU`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE DOVIZ_BUROSU', -551, 335544352)
+- `DOVIZ_HAREKET`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE DOVIZ_HAREKET', -551, 335544352)
+- `EFATURA_AYAR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EFATURA_AYAR', -551, 335544352)
+- `EFATURA_ESLESTIRME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EFATURA_ESLESTIRME', -551, 335544352)
+- `EFATURA_ESL_DETAY1`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EFATURA_ESL_DETAY1', -551, 335544352)
+- `EFATURA_ESL_DETAY2`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EFATURA_ESL_DETAY2', -551, 335544352)
+- `EFATURA_FIRMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EFATURA_FIRMA', -551, 335544352)
+- `EFATURA_OPSALAN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EFATURA_OPSALAN', -551, 335544352)
+- `EIRSALIYE_FIRMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE EIRSALIYE_FIRMA', -551, 335544352)
+- `ENBOY_FORMUL_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ENBOY_FORMUL_DETAY', -551, 335544352)
+- `ENBOY_FORMUL_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ENBOY_FORMUL_TANIM', -551, 335544352)
+- `FATURA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA', -551, 335544352)
+- `FATURAFISSAYAC`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURAFISSAYAC', -551, 335544352)
+- `FATURAHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURAHR', -551, 335544352)
+- `FATURA_ASORTI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_ASORTI', -551, 335544352)
+- `FATURA_DISMODUL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_DISMODUL', -551, 335544352)
+- `FATURA_IMEI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_IMEI', -551, 335544352)
+- `FATURA_KDV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_KDV', -551, 335544352)
+- `FATURA_KESINTI_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_KESINTI_TANIM', -551, 335544352)
+- `FATURA_KUR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_KUR', -551, 335544352)
+- `FATURA_SERINO`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_SERINO', -551, 335544352)
+- `FATURA_TEVKIFAT_IADE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_TEVKIFAT_IADE', -551, 335544352)
+- `FATURA_TIBBICIHAZ`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FATURA_TIBBICIHAZ', -551, 335544352)
+- `FIN_EMIRLER`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FIN_EMIRLER', -551, 335544352)
+- `FRANCHISESYNC`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE FRANCHISESYNC', -551, 335544352)
+- `GEN_IDT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE GEN_IDT', -551, 335544352)
+- `GRUP`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE GRUP', -551, 335544352)
+- `GRUP_ALT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE GRUP_ALT', -551, 335544352)
+- `GRUP_ARA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE GRUP_ARA', -551, 335544352)
+- `HRK_ACIKLAMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE HRK_ACIKLAMA', -551, 335544352)
+- `IRSALIYE_DISMODUL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE IRSALIYE_DISMODUL', -551, 335544352)
+- `IRSALIYE_KDV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE IRSALIYE_KDV', -551, 335544352)
+- `IRSALIYE_KUR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE IRSALIYE_KUR', -551, 335544352)
+- `KAMPANYA_MUSTERI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE KAMPANYA_MUSTERI', -551, 335544352)
+- `KEYWORDS_KAYIT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE KEYWORDS_KAYIT', -551, 335544352)
+- `KEYWORDS_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE KEYWORDS_TANIM', -551, 335544352)
+- `KREDILIKARTKONTOR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE KREDILIKARTKONTOR', -551, 335544352)
+- `KREDILIKART_ADETLIHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE KREDILIKART_ADETLIHR', -551, 335544352)
+- `KURYEPARATESLIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE KURYEPARATESLIM', -551, 335544352)
+- `LANG_CUSTOMIZE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE LANG_CUSTOMIZE', -551, 335544352)
+- `MARKA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MARKA', -551, 335544352)
+- `MLYMUH_DAGITIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MLYMUH_DAGITIM', -551, 335544352)
+- `MLYMUH_DAGITIM_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MLYMUH_DAGITIM_DETAY', -551, 335544352)
+- `MLYMUH_DONEM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MLYMUH_DONEM', -551, 335544352)
+- `MLYMUH_GENEL_GIDER_HESKODU`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MLYMUH_GENEL_GIDER_HESKODU', -551, 335544352)
+- `MMERKEZI_HR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MMERKEZI_HR', -551, 335544352)
+- `MM_GIDER`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MM_GIDER', -551, 335544352)
+- `MM_GIDER_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MM_GIDER_DETAY', -551, 335544352)
+- `MODEL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MODEL', -551, 335544352)
+- `MRP_DURUS_TANIMLARI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_DURUS_TANIMLARI', -551, 335544352)
+- `MRP_EMIRLERI_DETAY_ESLESTIRME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_EMIRLERI_DETAY_ESLESTIRME', -551, 335544352)
+- `MRP_EMIRLERI_EKMALIYET`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_EMIRLERI_EKMALIYET', -551, 335544352)
+- `MRP_EMIRLERI_GANTT_KZAMAN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_EMIRLERI_GANTT_KZAMAN', -551, 335544352)
+- `MRP_EMIRLERI_KALITE_SONUCLAR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_EMIRLERI_KALITE_SONUCLAR', -551, 335544352)
+- `MRP_EMIRLERI_SIPARIS_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_EMIRLERI_SIPARIS_DETAY', -551, 335544352)
+- `MRP_IS_MERKEZI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_IS_MERKEZI', -551, 335544352)
+- `MRP_KAYIP_ZAMAN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_KAYIP_ZAMAN', -551, 335544352)
+- `MRP_MAKINE_BAKIM_HRK`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_MAKINE_BAKIM_HRK', -551, 335544352)
+- `MRP_MAKINE_BAKIM_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_MAKINE_BAKIM_TANIM', -551, 335544352)
+- `MRP_MESAI_TAKVIMI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_MESAI_TAKVIMI', -551, 335544352)
+- `MRP_MOLA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_MOLA', -551, 335544352)
+- `MRP_OPERASYON`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE MRP_OPERASYON', -551, 335544352)
+- `NOT_TANIMLARI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE NOT_TANIMLARI', -551, 335544352)
+- `OFFLINE_UPDATE_LOG`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OFFLINE_UPDATE_LOG', -551, 335544352)
+- `ONODEME_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ONODEME_DETAY', -551, 335544352)
+- `ONODEME_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ONODEME_TANIM', -551, 335544352)
+- `OTEL_ACENTA_STOPSALE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_ACENTA_STOPSALE', -551, 335544352)
+- `OTEL_ADISYONHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_ADISYONHR', -551, 335544352)
+- `OTEL_BLOKAJ_ODA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_BLOKAJ_ODA', -551, 335544352)
+- `OTEL_DEPHABER_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_DEPHABER_TANIM', -551, 335544352)
+- `OTEL_DONEM_EXTRA_INDIRIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_DONEM_EXTRA_INDIRIM', -551, 335544352)
+- `OTEL_DONEM_PAN_FARK`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_DONEM_PAN_FARK', -551, 335544352)
+- `OTEL_DONEM_UCRET`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_DONEM_UCRET', -551, 335544352)
+- `OTEL_DOVIZ_HAREKET`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_DOVIZ_HAREKET', -551, 335544352)
+- `OTEL_EXTRA_INDIRIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_EXTRA_INDIRIM', -551, 335544352)
+- `OTEL_FOLIO_FIS`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_FOLIO_FIS', -551, 335544352)
+- `OTEL_GOREVLER`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_GOREVLER', -551, 335544352)
+- `OTEL_GOREV_ATAMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_GOREV_ATAMA', -551, 335544352)
+- `OTEL_GOREV_SABLON`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_GOREV_SABLON', -551, 335544352)
+- `OTEL_GRUP_REZERVASYON`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_GRUP_REZERVASYON', -551, 335544352)
+- `OTEL_HARCAMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_HARCAMA', -551, 335544352)
+- `OTEL_HARCAMAHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_HARCAMAHR', -551, 335544352)
+- `OTEL_HESAP_DEPARTMAN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_HESAP_DEPARTMAN', -551, 335544352)
+- `OTEL_KAPIKILIT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_KAPIKILIT', -551, 335544352)
+- `OTEL_KIMBIL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_KIMBIL', -551, 335544352)
+- `OTEL_KIMBILHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_KIMBILHR', -551, 335544352)
+- `OTEL_ONLINE_RZV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_ONLINE_RZV', -551, 335544352)
+- `OTEL_PANSIYON_KONSEPT_STOK`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_PANSIYON_KONSEPT_STOK', -551, 335544352)
+- `OTEL_REZERVASYON_EXTRAINDIRIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_REZERVASYON_EXTRAINDIRIM', -551, 335544352)
+- `OTEL_REZERVASYON_MUSTERI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_REZERVASYON_MUSTERI', -551, 335544352)
+- `OTEL_REZERVASYON_ODA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_REZERVASYON_ODA', -551, 335544352)
+- `OTEL_SALON_BAKIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_SALON_BAKIM', -551, 335544352)
+- `OTEL_SALON_ILETISIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_SALON_ILETISIM', -551, 335544352)
+- `OTEL_TARIFE_MUSTERI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_TARIFE_MUSTERI', -551, 335544352)
+- `OTEL_TGA_AYAR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_TGA_AYAR', -551, 335544352)
+- `OTEL_UYANDIRMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_UYANDIRMA', -551, 335544352)
+- `OTEL_VARSAYILAN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_VARSAYILAN', -551, 335544352)
+- `OTEL_YEMEK_HIZMET`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OTEL_YEMEK_HIZMET', -551, 335544352)
+- `OZELALANGRUP`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE OZELALANGRUP', -551, 335544352)
+- `PARA_SAYMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PARA_SAYMA', -551, 335544352)
+- `PROMOSYON_SATIS`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PROMOSYON_SATIS', -551, 335544352)
+- `PROMOSYON_SATIS_DT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PROMOSYON_SATIS_DT', -551, 335544352)
+- `PTMP_BONUS_BAKIYE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_BONUS_BAKIYE', -551, 335544352)
+- `PTMP_CARISTOK_ENSONSATISFYT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_CARISTOK_ENSONSATISFYT', -551, 335544352)
+- `PTMP_CARI_MANYASL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_CARI_MANYASL', -551, 335544352)
+- `PTMP_CARI_ZINCIR_TAHSILAT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_CARI_ZINCIR_TAHSILAT', -551, 335544352)
+- `PTMP_DEPO_LOKASYON`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_DEPO_LOKASYON', -551, 335544352)
+- `PTMP_DEPO_SIPARIS_LISTESI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_DEPO_SIPARIS_LISTESI', -551, 335544352)
+- `PTMP_FATURA_STTAHS_TURU`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_FATURA_STTAHS_TURU', -551, 335544352)
+- `PTMP_HIZMET_RAPORU`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_HIZMET_RAPORU', -551, 335544352)
+- `PTMP_STOKHR_SATIRBAKIYE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_STOKHR_SATIRBAKIYE', -551, 335544352)
+- `PTMP_STOK_FIFO_KALANLAR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_STOK_FIFO_KALANLAR', -551, 335544352)
+- `PTMP_TUPSUGUNCEL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE PTMP_TUPSUGUNCEL', -551, 335544352)
+- `RENK_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE RENK_TANIM', -551, 335544352)
+- `RESOURCES`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE RESOURCES', -551, 335544352)
+- `SATINALMA_ENTEGRASYON`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SATINALMA_ENTEGRASYON', -551, 335544352)
+- `SERILOT_NUMARA_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERILOT_NUMARA_TANIM', -551, 335544352)
+- `SERVIS_DISMODUL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_DISMODUL', -551, 335544352)
+- `SERVIS_FISDURUMU`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_FISDURUMU', -551, 335544352)
+- `SERVIS_FIS_PERSONEL`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_FIS_PERSONEL', -551, 335544352)
+- `SERVIS_ISLEM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_ISLEM', -551, 335544352)
+- `SERVIS_KDV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_KDV', -551, 335544352)
+- `SERVIS_KUR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_KUR', -551, 335544352)
+- `SERVIS_SOZLESME_URUN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_SOZLESME_URUN', -551, 335544352)
+- `SERVIS_URUN`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SERVIS_URUN', -551, 335544352)
+- `SIPARISHR_URETIM_DETAY`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SIPARISHR_URETIM_DETAY', -551, 335544352)
+- `SIPARIS_DURUM_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SIPARIS_DURUM_TANIM', -551, 335544352)
+- `SIPARIS_KDV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SIPARIS_KDV', -551, 335544352)
+- `SIPARIS_KUR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE SIPARIS_KUR', -551, 335544352)
+- `STOK_ALTERNATIF`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_ALTERNATIF', -551, 335544352)
+- `STOK_ALT_URUNLER`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_ALT_URUNLER', -551, 335544352)
+- `STOK_BARKOD`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_BARKOD', -551, 335544352)
+- `STOK_BIRIMLERI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_BIRIMLERI', -551, 335544352)
+- `STOK_ETICVARYANT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_ETICVARYANT', -551, 335544352)
+- `STOK_FIYAT_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_FIYAT_TANIM', -551, 335544352)
+- `STOK_KAREKOD_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_KAREKOD_TANIM', -551, 335544352)
+- `STOK_KATEGORI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_KATEGORI', -551, 335544352)
+- `STOK_OZELLIK_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_OZELLIK_TANIM', -551, 335544352)
+- `STOK_OZELLIK_TANIM_DT`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_OZELLIK_TANIM_DT', -551, 335544352)
+- `STOK_PAKET_DT_SRV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_PAKET_DT_SRV', -551, 335544352)
+- `STOK_TEDARIKCI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_TEDARIKCI', -551, 335544352)
+- `STOK_UYUMLU_MARKALAR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE STOK_UYUMLU_MARKALAR', -551, 335544352)
+- `TASIYICI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TASIYICI', -551, 335544352)
+- `TEKLIF_BILGI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TEKLIF_BILGI', -551, 335544352)
+- `TEKLIF_DURUM_TANIM`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TEKLIF_DURUM_TANIM', -551, 335544352)
+- `TEKLIF_KDV`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TEKLIF_KDV', -551, 335544352)
+- `TEKLIF_KUR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TEKLIF_KUR', -551, 335544352)
+- `TEKLIF_ODEME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TEKLIF_ODEME', -551, 335544352)
+- `TUPSU_STOK_ESLESTIRME`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE TUPSU_STOK_ESLESTIRME', -551, 335544352)
+- `USERLOGIN_LOG`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE USERLOGIN_LOG', -551, 335544352)
+- `UYARI_HATIRLATMA`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE UYARI_HATIRLATMA', -551, 335544352)
+- `VADEORANLARI`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE VADEORANLARI', -551, 335544352)
+- `VARDIYAHR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE VARDIYAHR', -551, 335544352)
+- `WEBENT_LOG_TABLE`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE WEBENT_LOG_TABLE', -551, 335544352)
+- `ZORUNLU_ALANLAR`: ('Error while preparing SQL statement:\n- SQLCODE: -551\n- no permission for read/select access to TABLE ZORUNLU_ALANLAR', -551, 335544352)
+
+## Doğrulanması Gereken Konular
+
+1. **Yazma işlemleri sırası:** Faz 5'teki stok/cari ekleme analizi, Wolvox arayüzünden gerçek bir kayıt eklenerek doğrulanmalıdır.
+2. **Trigger davranışları:** Trigger'ların gerçekte hangi ek işlemleri yaptığı, test kayıtları ile doğrulanmalıdır.
+3. **Uygulama katmanı mantığı:** Wolvox'un Delphi/C++ kodunda yapılan ek iş mantığı (varsayılan değerler, hesaplamalar, validasyonlar) bu analizle tespit edilemez.
+4. **Kolon anlamları:** Bazı kolon isimleri Türkçe kısaltmalarla yazıldığından, gerçek anlamları Wolvox arayüzündeki etiketlerle karşılaştırılarak doğrulanmalıdır.
+5. **Çoklu veritabanı yapısı:** Wolvox'un farklı yıllar veya şirketler için ayrı veritabanı dosyaları (.fdb) kullanıp kullanmadığı kontrol edilmelidir (yol: `DEMOWOLVOX\2026\WOLVOX.fdb` — yıl bazlı yapı olabilir).

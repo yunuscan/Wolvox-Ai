@@ -1,0 +1,482 @@
+# Wolvox Firebird Veritabanı — Genel Bakış
+
+---
+**Analiz Tarihi:** 2026-07-19 15:50:10  
+**Firebird Sürümü:** 2.5.6 (WI-V6.3.6.27020 Firebird 2.5)  
+**Veritabanı:** DEMOWOLVOX (Wolvox 9)  
+**Veritabanı Yolu:** `C:\AKINSOFT\Wolvox9\Database_FB\DEMOWOLVOX\2026\WOLVOX.fdb`  
+**Charset:** WIN1254  
+**Not:** Bu dokümantasyon salt-okunur analiz ile oluşturulmuştur. Wolvox güncellemelerinde şema değişebilir.
+
+---
+
+## Özet İstatistikler
+
+| Metrik | Değer |
+|--------|-------|
+| Toplam Kullanıcı Tablosu | **421** |
+| Toplam Kolon | **8114** |
+| Primary Key Tanımlı Tablo | **387** |
+| Foreign Key İlişkisi | **0** |
+| Generator/Sequence | **57** |
+| Trigger | **10** |
+| Stored Procedure | **73** |
+| View | **0** |
+
+## Tespit Edilen İş Modülleri
+
+### BANKA (15 tablo)
+- `BANKAHR` (? satır)
+- `BANKAHR_GMDETAY` (? satır)
+- `BANKAHR_IMPORT` (? satır)
+- `BANKAHR_IMPORT_ACIK` (? satır)
+- `BANKA_ADI` (? satır)
+- `BANKA_CEKSENET` (? satır)
+- `BANKA_HESAP` (? satır)
+- `BANKA_KK_DETAY` (? satır)
+- `BANKA_KREDI_KUL` (? satır)
+- `BANKA_KREDI_KUL_DETAY` (? satır)
+- `BANKA_KREDI_KUL_DETAY_ODEME` (? satır)
+- `BANKA_POS_DETAY` (? satır)
+- `BANKA_POS_DETAY_VADE` (? satır)
+- `BANKA_TATIL` (? satır)
+- `BANKA_TATIL_DETAY` (? satır)
+
+### CARI (30 tablo)
+- `ADISYONCARIHR` (? satır)
+- `CARI` (? satır)
+- `CARIHR` (? satır)
+- `CARIHR_VALOR` (? satır)
+- `CARI_ADRES` (? satır)
+- `CARI_DOVIZ` (? satır)
+- `CARI_EK_KESINTILER` (? satır)
+- `CARI_MANUEL_YASLANDIRMA` (? satır)
+- `CARI_NOTLAR` (? satır)
+- `CARI_PAZ_HEDEF` (? satır)
+- `CARI_SERVIS` (? satır)
+- `CARI_YASL_DONEM` (? satır)
+- `CARI_YETKILI` (? satır)
+- `CARI_ZINCIR_PAZARLAMA` (? satır)
+- `CRM_CARI_LISTE` (? satır)
+- `CRM_CARI_LISTE_DETAY` (? satır)
+- `KAMPANYA_MUSTERI` (? satır)
+- `OTEL_MUSTERI` (? satır)
+- `OTEL_REZERVASYON_MUSTERI` (? satır)
+- `OTEL_TARIFE_MUSTERI` (? satır)
+- `PTMP_CARIKPB_BAKIYE` (? satır)
+- `PTMP_CARI_BAKIYE` (? satır)
+- `PTMP_CARI_BAKIYE_VALOR` (? satır)
+- `PTMP_CARI_KART_ANALIZI` (? satır)
+- `PTMP_CARI_MANYASL` (? satır)
+- `PTMP_CARI_MANYASL_BRC` (? satır)
+- `PTMP_CARI_OTOYASL_CARI` (? satır)
+- `PTMP_CARI_OTOYASL_HRK` (? satır)
+- `PTMP_CARI_ZINCIR_TAHSILAT` (? satır)
+- `PTMP_FATKZ_MLYTCARI` (? satır)
+
+### CEK_SENET (5 tablo)
+- `CEKI_LISTESI` (? satır)
+- `CEK_SENET` (? satır)
+- `CEK_SENET_BORDRO` (? satır)
+- `CEK_SENET_DT` (? satır)
+- `GM_CEKSENET` (? satır)
+
+### DEPO (3 tablo)
+- `DEPO` (? satır)
+- `PTMP_DEPO_ENVANTERI` (? satır)
+- `PTMP_DEPO_SIPARIS_LISTESI` (? satır)
+
+### FATURA (27 tablo)
+- `EFATURA_AYAR` (? satır)
+- `EFATURA_ESLESTIRME` (? satır)
+- `EFATURA_ESL_DETAY1` (? satır)
+- `EFATURA_ESL_DETAY2` (? satır)
+- `EFATURA_FIRMA` (? satır)
+- `EFATURA_OPSALAN` (? satır)
+- `EIRSALIYE_FIRMA` (? satır)
+- `FATURA` (? satır)
+- `FATURAFISSAYAC` (? satır)
+- `FATURAHR` (? satır)
+- `FATURA_ASORTI` (? satır)
+- `FATURA_DISMODUL` (? satır)
+- `FATURA_IMEI` (? satır)
+- `FATURA_KDV` (? satır)
+- `FATURA_KESINTI_TANIM` (? satır)
+- `FATURA_KUR` (? satır)
+- `FATURA_SERINO` (? satır)
+- `FATURA_TEVKIFAT_IADE` (? satır)
+- `FATURA_TIBBICIHAZ` (? satır)
+- `FIRSAT` (? satır)
+- `IRSALIYE` (? satır)
+- `IRSALIYEHR` (? satır)
+- `IRSALIYE_DISMODUL` (? satır)
+- `IRSALIYE_KDV` (? satır)
+- `IRSALIYE_KUR` (? satır)
+- `IRSALIYE_SERINO` (? satır)
+- `PTMP_FATURA_STTAHS_TURU` (? satır)
+
+### FIYAT (3 tablo)
+- `ADISYON_DISKO_FIYAT` (? satır)
+- `OTEL_ENVANTER_FIYAT` (? satır)
+- `OTEL_SALON_FIYAT` (? satır)
+
+### GRUP (6 tablo)
+- `GRUP` (? satır)
+- `GRUP_ALT` (? satır)
+- `GRUP_ARA` (? satır)
+- `OTEL_GRUP_REZERVASYON` (? satır)
+- `OZELALANGRUP` (? satır)
+- `VARYANT_GRP` (? satır)
+
+### KASA (6 tablo)
+- `DEPO_LOKASYONHR` (? satır)
+- `DEPO_LOKASYON_TANIM` (? satır)
+- `HSATIS_KASA_SAYIM` (? satır)
+- `KASA` (? satır)
+- `KASAHR` (? satır)
+- `PTMP_DEPO_LOKASYON` (? satır)
+
+### KDV_VERGI (2 tablo)
+- `SERVIS_KDV` (? satır)
+- `TEKLIF_KDV` (? satır)
+
+### KULLANICI (1 tablo)
+- `USERLOGIN_LOG` (? satır)
+
+### MUHASEBE (6 tablo)
+- `MLYMUH_DAGITIM` (? satır)
+- `MLYMUH_DAGITIM_DETAY` (? satır)
+- `MLYMUH_DONEM` (? satır)
+- `MLYMUH_GENEL_GIDER` (? satır)
+- `MLYMUH_GENEL_GIDER_HESKODU` (? satır)
+- `OTEL_HESAP_DEPARTMAN` (? satır)
+
+### PARAMETRELER (6 tablo)
+- `AYAR` (? satır)
+- `OTEL_AYAR` (? satır)
+- `OTEL_SANTRAL_AYAR` (? satır)
+- `OTEL_TGA_AYAR` (? satır)
+- `PTMP_ISTATISTIKAYARLA` (? satır)
+- `SUBE_AYAR` (? satır)
+
+### PERSONEL (3 tablo)
+- `MRP_MAKINE_PERSONEL` (? satır)
+- `OTEL_PERSONEL` (? satır)
+- `SERVIS_FIS_PERSONEL` (? satır)
+
+### RAPOR (3 tablo)
+- `KULLANICI_OZELRAPOR` (? satır)
+- `PTMP_HIZMET_RAPORU` (? satır)
+- `PTMP_SERINORAPORU` (? satır)
+
+### SIPARIS (9 tablo)
+- `MRP_EMIRLERI_SIPARIS_DETAY` (? satır)
+- `SIPARIS` (? satır)
+- `SIPARISHR` (? satır)
+- `SIPARISHR_URETIM_DETAY` (? satır)
+- `SIPARIS_DURUM_TANIM` (? satır)
+- `SIPARIS_KDV` (? satır)
+- `SIPARIS_KUR` (? satır)
+- `SIPARIS_SERINO` (? satır)
+- `SIPARIS_TESLIM_DETAY` (? satır)
+
+### STOK (61 tablo)
+- `ADISYONSTOKDETAY` (? satır)
+- `BARKOD_TIPI` (? satır)
+- `ITHALAT_GIRIS_STOK` (? satır)
+- `MRP_EMIRLERI_FASON_STOK` (? satır)
+- `MRP_MAKINE_STOK` (? satır)
+- `OTEL_PANSIYON_KONSEPT_STOK` (? satır)
+- `PROMOSYON_TANIM_URUN` (? satır)
+- `PTMP_CARISTOK_ENSONSATISFYT` (? satır)
+- `PTMP_STOKHR_SATIRBAKIYE` (? satır)
+- `PTMP_STOK_DNMRAP` (? satır)
+- `PTMP_STOK_ENVANTER` (? satır)
+- `PTMP_STOK_FIFO_KALANLAR` (? satır)
+- `PTMP_STOK_ISLEM_GORMEYEN` (? satır)
+- `PTMP_STOK_KZB` (? satır)
+- `PTMP_STOK_KZN` (? satır)
+- `PTMP_STOK_KZ_OZEL` (? satır)
+- `PTMP_STOK_MKBAKIYE` (? satır)
+- `PTMP_STOK_YETERLILIK` (? satır)
+- `SERVIS_SOZLESME_URUN` (? satır)
+- `SERVIS_URUN` (? satır)
+- `STOK` (? satır)
+- `STOKDEPO_SAYIM` (? satır)
+- `STOKHR` (? satır)
+- `STOKHR_MALIYET` (? satır)
+- `STOK_ALTERNATIF` (? satır)
+- `STOK_ALT_URUNLER` (? satır)
+- `STOK_BARKOD` (? satır)
+- `STOK_BIRIMLERI` (? satır)
+- `STOK_BLOKE` (? satır)
+- `STOK_DEPO` (? satır)
+- `STOK_DETAY_HAREKET` (? satır)
+- `STOK_EK_DETAY` (? satır)
+- `STOK_ETICVARYANT` (? satır)
+- `STOK_FIYAT` (? satır)
+- `STOK_FIYAT_DEGISIM_LOG` (? satır)
+- `STOK_FIYAT_LISTE` (? satır)
+- `STOK_FIYAT_LISTE_DT` (? satır)
+- `STOK_FIYAT_LISTE_VARSAYILAN` (? satır)
+- `STOK_FIYAT_TANIM` (? satır)
+- `STOK_GMUHASEBE` (? satır)
+- `STOK_ISKONTO` (? satır)
+- `STOK_ISKONTO_DETAY` (? satır)
+- `STOK_ISK_KIST` (? satır)
+- `STOK_ISK_KIST_DETAY` (? satır)
+- `STOK_KAREKOD_TANIM` (? satır)
+- `STOK_KATEGORI` (? satır)
+- `STOK_MRP_KK` (? satır)
+- `STOK_OZELLIK_TANIM` (? satır)
+- `STOK_OZELLIK_TANIM_DT` (? satır)
+- `STOK_PAKET` (? satır)
+- `STOK_PAKET_DT` (? satır)
+- `STOK_PAKET_DT_SRV` (? satır)
+- `STOK_SAYIM_SONUC` (? satır)
+- `STOK_SAYIM_SONUC_DT` (? satır)
+- `STOK_SIPARIS_LISTESI` (? satır)
+- `STOK_TEDARIKCI` (? satır)
+- `STOK_UYUMLU_MARKALAR` (? satır)
+- `TUPSU_STOK_ESLESTIRME` (? satır)
+- `YSURUN` (? satır)
+- `YSURUNDETAY` (? satır)
+- `YSURUNESLESME` (? satır)
+
+### Sınıflandırılamayan Tablolar (235 adet)
+- `ADISYONBUTON`
+- `ADISYONFIS`
+- `ADISYONHAREKET`
+- `ADISYONHAREKETPRINT`
+- `ADISYONMUTFAKPRINT`
+- `ADISYONODEME`
+- `ADISYONODEMEHR`
+- `ADISYON_BOLUM_ESLESME`
+- `ADISYON_FISTIPI`
+- `ADISYON_MUTFAK`
+- `ADISYON_MUTFAK_MESAJ`
+- `ADISYON_REZERVASYON`
+- `ADISYON_REZERVASYON_MASA`
+- `ANKET`
+- `ANKET_DT`
+- `ANKET_DTCVP`
+- `ANKET_SONUC`
+- `BASIT_URETIM`
+- `BASIT_URETIMHR`
+- `BASIT_URETIM_PRC`
+- `BASIT_URETIM_PRC_HEDEF`
+- `BASIT_URETIM_PRC_KAYNAK`
+- `BEDEN_TANIM`
+- `BEKLEME_LISTESI`
+- `BELGEKILIT`
+- `BELGELOG`
+- `BELGE_ONAY_HRK`
+- `BELGE_ONAY_TANIM`
+- `BELGE_ONAY_TANIM_DETAY`
+- `BONUSHR`
+- `BONUS_TANIM`
+- `BONUS_TANIM_KADEME`
+- `CALLERID_LISTE`
+- `CRM_DURUM_TANIM`
+- `DEGISIM_LOG`
+- `DOKUMAN_KAYIT`
+- `DOVIZ`
+- `DOVIZ_BUROSU`
+- `DOVIZ_HAREKET`
+- `EADISYONHR`
+- `ENBOY_FORMUL_DETAY`
+- `ENBOY_FORMUL_TANIM`
+- `EVENTS`
+- `FINANSAL_ANALIZ`
+- `FIN_EMIRLER`
+- `FRANCHISESYNC`
+- `GENELKAPSAM`
+- `GEN_IDT`
+- `GUNSONUHR`
+- `GUN_SONU`
+- `HEDIYE_KART`
+- `HHOURS_FISKOSUL`
+- `HHOURS_HAREKET`
+- `HHOURS_INDIRIM`
+- `HHOURS_KAMPKOSUL`
+- `HHOURS_TANIM`
+- `HIZMET`
+- `HRK_ACIKLAMA`
+- `ITHALAT`
+- `ITHALAT_GIRIS`
+- `ITHALAT_GIRIS_MALIYET`
+- `ITHALAT_GIRIS_SERINO`
+- `KAMPANYA`
+- `KEYWORDS_KAYIT`
+- `KEYWORDS_TANIM`
+- `KREDILIKART`
+- `KREDILIKARTHR`
+- `KREDILIKARTKONTOR`
+- `KREDILIKART_ADETLIHR`
+- `KREDI_KARTI`
+- `KURYEHAKEDIS`
+- `KURYEPARATESLIM`
+- `LANG_CUSTOMIZE`
+- `MAIL_SMS_LOG`
+- `MAIL_SMS_SABLON`
+- `MARKA`
+- `MASA`
+- `MASA_SURE_TARIFE`
+- `MMERKEZI_HR`
+- `MM_DAGITIM_GIDER`
+- `MM_DAGITIM_URETIM`
+- `MM_DAGITIM_YEVMIYE`
+- `MM_DONEM`
+- `MM_GIDER`
+- `MM_GIDER_DETAY`
+- `MM_ILKMADDE`
+- `MM_ILKMADDE_DETAY`
+- `MM_ILKMADDE_SERINO`
+- `MODEL`
+- `MRP_DURUS_TANIMLARI`
+- `MRP_EMIRLERI`
+- `MRP_EMIRLERI_DETAY`
+- `MRP_EMIRLERI_DETAY_ESLESTIRME`
+- `MRP_EMIRLERI_EKMALIYET`
+- `MRP_EMIRLERI_FASON`
+- `MRP_EMIRLERI_FASON_GELEN`
+- `MRP_EMIRLERI_FASON_GIDEN`
+- `MRP_EMIRLERI_GANTT`
+- `MRP_EMIRLERI_GANTT_DETAY`
+- `MRP_EMIRLERI_GANTT_KZAMAN`
+- `MRP_EMIRLERI_HURDA`
+- `MRP_EMIRLERI_HURDA_SONUC`
+- `MRP_EMIRLERI_IS_EMRI`
+- `MRP_EMIRLERI_IS_EMRI_DETAY`
+- `MRP_EMIRLERI_KALITE`
+- `MRP_EMIRLERI_KALITE_SONUCLAR`
+- `MRP_EMIRLERI_MAKINE`
+- `MRP_EMIRLERI_MALIYET_TEMP`
+- `MRP_EMIRLERI_OPERASYON`
+- `MRP_EMIRLERI_VERSIYON`
+- `MRP_HAMMADDE_GIRIS`
+- `MRP_IS_MERKEZI`
+- `MRP_KAYIP_ZAMAN`
+- `MRP_MAKINE`
+- `MRP_MAKINE_BAKIM_HRK`
+- `MRP_MAKINE_BAKIM_TANIM`
+- `MRP_MESAI_TAKVIMI`
+- `MRP_MOLA`
+- `MRP_OPERASYON`
+- `NOT_TANIMLARI`
+- `OFFLINE_UPDATE_LOG`
+- `OKC_ANDROID_SATIS`
+- `ONODEME_DETAY`
+- `ONODEME_SATIS`
+- `ONODEME_TANIM`
+- `OTEL_ACENTA`
+- `OTEL_ACENTA_KONTENJAN`
+- `OTEL_ACENTA_STOPSALE`
+- `OTEL_ADISYONHR`
+- `OTEL_AKBS`
+- `OTEL_AKSIYON`
+- `OTEL_BLOKAJ`
+- `OTEL_BLOKAJHR`
+- `OTEL_BLOKAJ_ODA`
+- `OTEL_DEPHABER_HR`
+- `OTEL_DEPHABER_TANIM`
+- `OTEL_DONEM`
+- `OTEL_DONEM_EXTRA_INDIRIM`
+- `OTEL_DONEM_PAN_FARK`
+- `OTEL_DONEM_UCRET`
+- `OTEL_DOVIZ_HAREKET`
+- `OTEL_ENVANTER`
+- `OTEL_ENVANTER_HAREKET`
+- `OTEL_ETKINLIK`
+- `OTEL_EXTRA_INDIRIM`
+- `OTEL_FOLIOHR`
+- `OTEL_FOLIO_FIS`
+- `OTEL_GENEL`
+- `OTEL_GOREVHR`
+- `OTEL_GOREVLER`
+- `OTEL_GOREV_ATAMA`
+- `OTEL_GOREV_SABLON`
+- `OTEL_HARCAMA`
+- `OTEL_HARCAMAHR`
+- `OTEL_KAPIKILIT`
+- `OTEL_KAYIP_ESYA`
+- `OTEL_KIMBIL`
+- `OTEL_KIMBILHR`
+- `OTEL_KONUMLANDIRICI`
+- `OTEL_LOG`
+- `OTEL_MESAJ`
+- `OTEL_ODA`
+- `OTEL_ODAUCRETHR`
+- `OTEL_ONLINE_RZV`
+- `OTEL_PANSIYON_KONSEPT`
+- `OTEL_REZERVASYON`
+- `OTEL_REZERVASYON_EXTRAINDIRIM`
+- `OTEL_REZERVASYON_ODA`
+- `OTEL_SALON`
+- `OTEL_SALONHR`
+- `OTEL_SALON_BAKIM`
+- `OTEL_SALON_DUZEN`
+- `OTEL_SALON_ILETISIM`
+- `OTEL_SANTRAL`
+- `OTEL_SERVIS`
+- `OTEL_SIKAYET`
+- `OTEL_TARIFE`
+- `OTEL_UYANDIRMA`
+- `OTEL_VARSAYILAN`
+- `OTEL_YEMEK_HIZMET`
+- `OZELALANTANIM`
+- `PARA_SAYMA`
+- `PROMOSYON_SATIS`
+- `PROMOSYON_SATIS_DT`
+- `PROMOSYON_TANIM`
+- `PROMOSYON_TANIM_SATIS_SART`
+- `PTMP_BONUS_BAKIYE`
+- `PTMP_CRDNM_BAKIYE`
+- `PTMP_OTEL_REZERVASYON_LISTE`
+- `PTMP_TAKSIT_BAKIYE`
+- `PTMP_TUPSUGUNCEL`
+- `RENK_TANIM`
+- `RESOURCES`
+- `ROTA_HAREKET`
+- `ROTA_PLANLAMA`
+- `SARFMLZM_FISI`
+- `SARFMLZM_FISI_DETAY`
+- `SATINALMA_ENTEGRASYON`
+- `SATIR_IPTAL`
+- `SERILOT_NUMARA_TANIM`
+- `SERI_NO`
+- `SERVIS`
+- `SERVISHR`
+- `SERVIS_ARAC`
+- `SERVIS_DISMODUL`
+- `SERVIS_DISSRV`
+- `SERVIS_FISDURUMU`
+- `SERVIS_FIS_ISLEMLERI`
+- `SERVIS_ISLEM`
+- `SERVIS_KUR`
+- `SERVIS_SERINO`
+- `SERVIS_SOZLESME`
+- `SEVKIYAT`
+- `SEVKIYAT_DETAY`
+- `SEVKIYAT_SAYIM`
+- `TAKSITHR`
+- `TASIYICI`
+- `TEKLIF`
+- `TEKLIFHR`
+- `TEKLIF_BILGI`
+- `TEKLIF_DURUM_TANIM`
+- `TEKLIF_KUR`
+- `TEKLIF_ODEME`
+- `TEKNIKDESTEK`
+- `TSMLOG`
+- `TUPSU`
+- `TUPSU_DEGISIM`
+- `TUPSU_DT`
+- `URETIM_SERILOT`
+- `UYARI_HATIRLATMA`
+- `VADEORANLARI`
+- `VARDIYAHR`
+- `VARYANT`
+- `WEBENT_LOG_TABLE`
+- `ZORUNLU_ALANLAR`
+
